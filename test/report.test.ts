@@ -6,7 +6,7 @@ import { Analysis } from '../src/lib/schema.js';
 import { buildReportData, writeReport } from '../src/render/report.js';
 import { makeTmpRepo, writeFile, commitAll, removeTmpRepo, git } from './helpers/tmp-repo.js';
 
-test('render pipeline: diffs come from git, not from the analysis JSON', async (t) => {
+test('render pipeline: diff content comes from git, not from the analysis JSON', async (t) => {
   const repo = makeTmpRepo();
   t.after(() => removeTmpRepo(repo));
 
@@ -17,19 +17,42 @@ test('render pipeline: diffs come from git, not from the analysis JSON', async (
   commitAll(repo, 'add bye()');
 
   const analysis = Analysis.parse({
-    overview: { title: 'Add bye()', intent: 'i', context: 'c', summary: 's' },
+    version: '1.0',
+    merge_request: {
+      title: 'Add bye()',
+      source_branch: 'feature',
+      target_branch: 'main',
+      base_sha: 'abc',
+      head_sha: 'def',
+    },
+    overview: { what: 'w', why: 'y', risks: 'r', out_of_scope: 'o', estimated_reading_minutes: 1 },
     steps: [
       {
+        id: 'add-bye',
+        kind: 'core',
         title: 'Add bye()',
         role: 'core logic',
-        explanation: 'adds a function',
-        files: [{ path: 'app.py', note: 'new function' }],
+        intro: 'adds a function',
+        detail: 'adds a function',
+        files: [
+          {
+            path: 'app.py',
+            change_type: 'modified',
+            why: 'new function',
+            confidence: 'high',
+            hunks: [{ index: 0, old_start: 1, old_lines: 2, new_start: 1, new_lines: 5 }],
+          },
+        ],
       },
     ],
   });
 
   const data = buildReportData(analysis, 'main', repo);
-  assert.equal(data.steps[0]?.files[0]?.diff.includes('+def bye()'), true);
+  const lines = data.steps[0]?.files[0]?.hunks[0]?.lines ?? [];
+  assert.ok(
+    lines.some((l) => l.type === 'add' && l.text.includes('def bye()')),
+    'expected the real git diff content, not anything from the analysis JSON'
+  );
 
   const reportDir = path.join(repo, 'easy-diff', 'report');
   writeReport(reportDir, data);
@@ -42,12 +65,32 @@ test('render pipeline: diffs come from git, not from the analysis JSON', async (
   assert.match(html, /Add bye\(\)/);
   assert.match(html, /def bye/);
 
-  await t.test('an unknown/missing file degrades to an empty diff, not a crash', () => {
+  await t.test('an out-of-range hunk index degrades to showing every real hunk', () => {
+    const withBadIndex = Analysis.parse({
+      ...analysis,
+      steps: [
+        {
+          ...analysis.steps[0],
+          files: [
+            {
+              ...analysis.steps[0]!.files[0]!,
+              hunks: [{ index: 99, old_start: 1, old_lines: 1, new_start: 1, new_lines: 1 }],
+            },
+          ],
+        },
+      ],
+    });
+    const result = buildReportData(withBadIndex, 'main', repo);
+    const resultLines = result.steps[0]?.files[0]?.hunks[0]?.lines ?? [];
+    assert.ok(resultLines.some((l) => l.text.includes('def bye()')));
+  });
+
+  await t.test('an unknown/missing file degrades to no hunks, not a crash', () => {
     const withMissingFile = Analysis.parse({
-      overview: analysis.overview,
-      steps: [{ ...analysis.steps[0], files: [{ path: 'does-not-exist.py' }] }],
+      ...analysis,
+      steps: [{ ...analysis.steps[0], files: [{ ...analysis.steps[0]!.files[0]!, path: 'does-not-exist.py' }] }],
     });
     const result = buildReportData(withMissingFile, 'main', repo);
-    assert.equal(result.steps[0]?.files[0]?.diff, '');
+    assert.deepEqual(result.steps[0]?.files[0]?.hunks, []);
   });
 });

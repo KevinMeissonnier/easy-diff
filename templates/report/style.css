@@ -65,17 +65,41 @@ h3 { font-size: 14px; margin: 0 0 8px; }
 section { margin-bottom: 28px; }
 section p { margin: 0; font-size: 16px; white-space: pre-wrap; }
 
-.explanation { font-size: 16px; margin: 0 0 20px; white-space: pre-wrap; }
+.intro { font-size: 16px; font-weight: 600; margin: 0 0 12px; white-space: pre-wrap; }
+.detail { font-size: 16px; margin: 0 0 20px; white-space: pre-wrap; color: var(--muted); }
 
-.attention {
+.watchpoints {
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 16px 20px;
-  margin-bottom: 24px;
+  margin: 12px 0;
 }
-.attention ul { margin: 0; padding-left: 20px; }
-.attention li { margin: 4px 0; }
+.watchpoints ul { margin: 0; padding-left: 20px; }
+.watchpoints li { margin: 4px 0; }
+
+.badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.badge {
+  display: inline-block;
+  font-family: var(--font);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--muted);
+}
+.badge.kind-delicate,
+.badge.confidence-low,
+.badge.change-deleted { border-color: var(--del-fg); color: var(--del-fg); }
+.badge.kind-core,
+.badge.change-added { border-color: var(--add-fg); color: var(--add-fg); }
+.badge.kind-foundation,
+.badge.kind-wiring,
+.badge.change-renamed,
+.badge.change-modified { border-color: var(--hunk-fg); color: var(--hunk-fg); }
 
 button {
   font: inherit;
@@ -126,7 +150,23 @@ button.primary {
   font-size: 13px;
   flex-wrap: wrap;
 }
-.file-note { color: var(--muted); font-family: var(--font); font-size: 13px; }
+.file-why { padding: 10px 14px 0; margin: 0; font-size: 14px; }
+
+.hunks { display: flex; flex-direction: column; }
+.hunk + .hunk { border-top: 1px solid var(--border); }
+.hunk-header {
+  padding: 6px 14px;
+  background: var(--hunk-bg);
+  color: var(--hunk-fg);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.hunk-note {
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--muted);
+  border-top: 1px dashed var(--border);
+}
 
 .diff {
   margin: 0;
@@ -143,8 +183,7 @@ button.primary {
 .line { padding: 1px 14px; white-space: pre; }
 .line.add { background: var(--add-bg); color: var(--add-fg); }
 .line.del { background: var(--del-bg); color: var(--del-fg); }
-.line.hunk { background: var(--hunk-bg); color: var(--hunk-fg); }
-.line.meta { color: var(--muted); }
+.line.focus { box-shadow: inset 3px 0 0 var(--accent); font-weight: 600; }
 
 .error { padding: 40px; color: var(--del-fg); }
 
