@@ -3,33 +3,67 @@
   "title": "EasyDiffAnalysis",
   "type": "object",
   "additionalProperties": false,
-  "required": ["overview", "steps"],
+  "required": ["version", "merge_request", "overview", "steps"],
   "properties": {
-    "overview": {
+    "version": {
+      "const": "1.0"
+    },
+    "merge_request": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["title", "intent", "context", "summary"],
+      "required": ["title", "source_branch", "target_branch", "base_sha", "head_sha"],
       "properties": {
+        "id": {
+          "type": ["string", "null"],
+          "description": "The MR/PR number if one is known from context (e.g. '!418'). Null if there is none — never invent one."
+        },
         "title": {
           "type": "string",
           "description": "A short, human headline for this change (not a commit message)."
         },
-        "intent": {
+        "source_branch": {
           "type": "string",
-          "description": "Why this change exists: the problem or goal it addresses."
+          "description": "The branch being reviewed, from `git rev-parse --abbrev-ref HEAD`."
         },
-        "context": {
+        "target_branch": {
           "type": "string",
-          "description": "Background a reviewer needs before looking at any code: what existed before, what constraints applied."
+          "description": "The base branch this is being compared against."
         },
-        "summary": {
+        "base_sha": {
           "type": "string",
-          "description": "A high-level narrative of what changed, in prose, without quoting code."
+          "description": "The merge-base commit, from `git merge-base <target_branch> HEAD`."
         },
-        "attention_points": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Notable risks, trade-offs, or things the reviewer should pay special attention to overall."
+        "head_sha": {
+          "type": "string",
+          "description": "The commit being reviewed, from `git rev-parse HEAD`."
+        }
+      }
+    },
+    "overview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["what", "why", "risks", "out_of_scope", "estimated_reading_minutes"],
+      "properties": {
+        "what": {
+          "type": "string",
+          "description": "A plain-language narrative of what changed, without quoting code."
+        },
+        "why": {
+          "type": "string",
+          "description": "The problem or goal this change addresses."
+        },
+        "risks": {
+          "type": "string",
+          "description": "The main risk or trade-off a reviewer should keep in mind overall. Say so explicitly if there isn't one."
+        },
+        "out_of_scope": {
+          "type": "string",
+          "description": "What this change deliberately does not touch, to set the reviewer's expectations. Say so explicitly if nothing notable is out of scope."
+        },
+        "estimated_reading_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "A rough estimate of how long a careful reviewer would take to read this report."
         }
       }
     },
@@ -39,20 +73,29 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["title", "role", "explanation", "files"],
+        "required": ["id", "kind", "title", "role", "intro", "detail", "files"],
         "properties": {
+          "id": {
+            "type": "string",
+            "description": "A short, stable, kebab-case slug for this step (e.g. 'invalidation')."
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["foundation", "core", "wiring", "delicate", "tests"],
+            "description": "foundation: data/schema/contracts this step's logic depends on. core: the main logic. wiring: integrating that logic with its callers. delicate: a step that carries real risk and deserves the closest reading. tests: test coverage."
+          },
           "title": { "type": "string" },
           "role": {
             "type": "string",
-            "description": "This step's role in the overall change, e.g. 'foundation', 'core logic', 'wiring', 'tests'."
+            "description": "This step's role in the overall change, in one short phrase, e.g. 'Defines the interface the cache must satisfy'."
           },
-          "explanation": {
+          "intro": {
             "type": "string",
-            "description": "Why this change was made this way, explained to a reviewer."
+            "description": "A short (1-2 sentence) teaser: what this step does and why it comes at this point in the story."
           },
-          "attention_points": {
-            "type": "array",
-            "items": { "type": "string" }
+          "detail": {
+            "type": "string",
+            "description": "The fuller reviewer-facing explanation: why this change was made this way."
           },
           "files": {
             "type": "array",
@@ -60,15 +103,62 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["path"],
+              "required": ["path", "change_type", "why", "confidence", "hunks"],
               "properties": {
                 "path": {
                   "type": "string",
                   "description": "Repo-relative path of a file touched in this step, exactly as it appears in the diff."
                 },
-                "note": {
+                "change_type": {
                   "type": "string",
-                  "description": "Optional short note about this specific file's part in the step."
+                  "enum": ["added", "modified", "deleted", "renamed"]
+                },
+                "why": {
+                  "type": "string",
+                  "description": "Why this specific file changed this way, explained to a reviewer."
+                },
+                "watchpoints": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Things worth double-checking in this specific file. Omit or leave empty if there are none."
+                },
+                "confidence": {
+                  "type": "string",
+                  "enum": ["high", "medium", "low"],
+                  "description": "How confident you are that this file's role is understood correctly, e.g. because its callers or tests weren't visible."
+                },
+                "hunks": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["index", "old_start", "old_lines", "new_start", "new_lines"],
+                    "properties": {
+                      "index": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "0-based position of this hunk among this file's hunks, in the order they appear in `git diff`."
+                      },
+                      "old_start": { "type": "integer", "minimum": 0 },
+                      "old_lines": { "type": "integer", "minimum": 0 },
+                      "new_start": { "type": "integer", "minimum": 0 },
+                      "new_lines": { "type": "integer", "minimum": 0 },
+                      "label": {
+                        "type": "string",
+                        "description": "Short label for the hunk, e.g. a function name it falls in — the text after the second '@@' in the hunk header, if present."
+                      },
+                      "note": {
+                        "type": "string",
+                        "description": "Optional short note about this specific hunk."
+                      },
+                      "focus_lines": {
+                        "type": "array",
+                        "items": { "type": "integer", "minimum": 1 },
+                        "description": "New-file line numbers within this hunk that most deserve the reviewer's eye. Omit if the whole hunk is equally relevant."
+                      }
+                    }
+                  }
                 }
               }
             }

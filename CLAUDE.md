@@ -84,9 +84,9 @@ d'un diff brut à reverse-engineer. Voir `README.md` pour le concept et l'archit
   ici doivent rester synchronisés avec `templates/commands/easy-diff-report.md` (`allowed-tools`
   frontmatter) — l'un pré-approuve sans prompt, l'autre est la vraie barrière.
 - `src/lib/schema.ts` — schéma zod de l'analyse + `extractAnalysis`, qui essaie plusieurs points
-  d'extraction dans la sortie `--output-format json`/`--json-schema` de Claude Code (le format
-  exact de l'enveloppe n'est pas encore confirmé en conditions réelles — voir README, section
-  "État du projet").
+  d'extraction dans la sortie `--output-format json`/`--json-schema` de Claude Code (l'enveloppe
+  et son champ `structured_output` sont confirmés contre une vraie invocation, voir
+  `test/fixtures/`).
 - `src/render/report.ts` — construit les données du rapport (le JSON du LLM + les diffs exacts par
   fichier, recalculés via `git diff`, jamais fournis par le LLM) et écrit le HTML/CSS/JS statique.
 - `templates/` — tout ce qui est scaffoldé tel quel dans un repo cible par `init`, plus le viewer
@@ -120,19 +120,23 @@ npm run build        # tsc + chmod +x dist/cli.js
 npm run dev -- init   # exécute depuis les sources via tsx, sans build
 ```
 
-## Prochaine évolution du format d'analyse
+## Format d'analyse riche (MR metadata, hunks ciblés, confidence, watchpoints)
 
-`templates/analysis.example.json` contient un exemple cible bien plus riche que le schéma actuel
-(`templates/analysis.schema.json`) : métadonnées de MR, `hunks` avec numéros de ligne exacts et
-`focus_lines`, `confidence`, `watchpoints`, `kind` par étape, `change_type` par fichier. Le
-schéma JSON, le prompt (`templates/commands/easy-diff-report.md`), `src/lib/schema.ts` (zod) et le
-rendu (`src/render/report.ts`, viewer `templates/report/`) devront être mis à jour pour matcher
-cette forme — pas encore fait, à traiter avec l'écriture du prompt définitif et la génération HTML.
+`templates/analysis.example.json` est désormais le format réel, pas juste une cible : métadonnées
+de MR, `hunks` avec numéros de ligne exacts et `focus_lines`, `confidence`, `watchpoints`, `kind`
+par étape, `change_type` par fichier. Le schéma JSON, le prompt, `src/lib/schema.ts` (zod) et le
+rendu (`src/render/report.ts`, viewer `templates/report/`) sont alignés sur cette forme.
 
-## Non testé en conditions réelles
+Le modèle ne fournit jamais le contenu d'un hunk, seulement son `index` (position dans l'ordre où
+`git diff` les produit) et des numéros de ligne à titre indicatif/pour le labelling. `report.ts`
+reparse lui-même `git diff` pour ce fichier et pioche le hunk réel à cet index — le contenu affiché
+vient toujours de notre propre parsing, jamais du JSON du modèle. Si tous les index d'un fichier
+sont invalides, tous ses hunks réels sont affichés plutôt que rien.
 
-`generate` invoque `claude -p` headless avec `--json-schema` — le format exact de l'enveloppe de
-sortie combinée à `--output-format json` n'a pas été validé contre une vraie invocation (pas de
-`claude` authentifié disponible pendant l'implémentation initiale). Si `extractAnalysis` échoue à
-l'usage, inspecter la sortie brute (elle est incluse dans le message d'erreur) et ajuster
-`collectJsonCandidates` dans `src/lib/schema.ts` en conséquence.
+## Validé en conditions réelles
+
+`generate` a été testé de bout en bout avec `claude -p --json-schema` contre un repo jetable (voir
+`test/fixtures/claude-envelope.*.json`, capturés depuis une vraie invocation). L'enveloppe expose
+la valeur structurée sous `structured_output`. Si le format venait à changer avec une future
+version de Claude Code, `extractAnalysis` inclut la sortie brute dans son message d'erreur —
+inspecter et ajuster `collectJsonCandidates` dans `src/lib/schema.ts` en conséquence.

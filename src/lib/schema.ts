@@ -1,27 +1,59 @@
 import { z } from 'zod';
 
-const FileRef = z.object({
-  path: z.string(),
+const ChangeType = z.enum(['added', 'modified', 'deleted', 'renamed']);
+const Confidence = z.enum(['high', 'medium', 'low']);
+const StepKind = z.enum(['foundation', 'core', 'wiring', 'delicate', 'tests']);
+
+const Hunk = z.object({
+  index: z.number().int().nonnegative(),
+  old_start: z.number().int().nonnegative(),
+  old_lines: z.number().int().nonnegative(),
+  new_start: z.number().int().nonnegative(),
+  new_lines: z.number().int().nonnegative(),
+  label: z.string().optional(),
   note: z.string().optional(),
+  focus_lines: z.array(z.number().int().positive()).optional(),
+});
+
+const FileEntry = z.object({
+  path: z.string(),
+  change_type: ChangeType,
+  why: z.string(),
+  watchpoints: z.array(z.string()).optional().default([]),
+  confidence: Confidence,
+  hunks: z.array(Hunk).min(1),
 });
 
 const Step = z.object({
+  id: z.string(),
+  kind: StepKind,
   title: z.string(),
   role: z.string(),
-  explanation: z.string(),
-  attention_points: z.array(z.string()).optional().default([]),
-  files: z.array(FileRef).min(1),
+  intro: z.string(),
+  detail: z.string(),
+  files: z.array(FileEntry).min(1),
+});
+
+const MergeRequest = z.object({
+  id: z.string().nullable().optional(),
+  title: z.string(),
+  source_branch: z.string(),
+  target_branch: z.string(),
+  base_sha: z.string(),
+  head_sha: z.string(),
 });
 
 const Overview = z.object({
-  title: z.string(),
-  intent: z.string(),
-  context: z.string(),
-  summary: z.string(),
-  attention_points: z.array(z.string()).optional().default([]),
+  what: z.string(),
+  why: z.string(),
+  risks: z.string(),
+  out_of_scope: z.string(),
+  estimated_reading_minutes: z.number().int().positive(),
 });
 
 export const Analysis = z.object({
+  version: z.literal('1.0'),
+  merge_request: MergeRequest,
   overview: Overview,
   steps: z.array(Step).min(1),
 });

@@ -68,8 +68,7 @@ npm run dev -- init      # exécute le CLI depuis les sources (tsx), sans build
 
 ## État du projet
 
-V1 en cours d'initialisation. `init` est testé de bout en bout (scaffolding pur, sans réseau).
-`generate` dépend d'une invocation réelle de `claude` headless — non encore testé en conditions
-réelles ; en particulier le format exact de sortie de `--json-schema` combiné à
-`--output-format json` est à confirmer (voir `extractAnalysis` dans `src/lib/schema.ts`, écrit de
-façon défensive en attendant).
+`init` et `generate` sont tous les deux testés de bout en bout. `generate` a été validé contre une
+vraie invocation `claude -p --json-schema` (voir `test/fixtures/claude-envelope.*.json`), y
+compris un cas où le modèle détecte une tentative d'injection de prompt dans le diff analysé et la
+signale sans l'exécuter.
