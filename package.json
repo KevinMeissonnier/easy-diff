@@ -14,7 +14,8 @@
     "node": ">=18.17"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && chmod +x dist/cli.js",
+    "build": "tsc -p tsconfig.build.json && chmod +x dist/cli.js && npm run build:css",
+    "build:css": "tailwindcss -i templates/report/tailwind.css -o templates/report/style.css --minify",
     "dev": "tsx src/cli.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test test/**/*.test.ts"
@@ -24,7 +25,9 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
     "@types/node": "^22.7.5",
+    "tailwindcss": "^4.3.3",
     "tsx": "^4.19.1",
     "typescript": "^5.6.3"
   }
