@@ -9,10 +9,12 @@
  * compiled, checked-in `style.css` next to it — that generated file is what `report.ts`
  * copies into a generated report, not this one.
  */
-@import "tailwindcss";
-
-/* Utility classes used by app.js — Tailwind v4 needs these listed explicitly since this
-   folder has no package.json/framework markers for its automatic content heuristic to key off. */
+/* `source(none)` disables Tailwind's automatic content scan, which otherwise walks up to the
+   repo root and scans every non-gitignored file for candidate class names — it was picking up
+   stray strings from unrelated files (e.g. an MR id "!418" elsewhere in the repo compiled into
+   a nonsense `.pr-418` utility). The two @source lines below are the only inputs that matter:
+   this template's own index.html and app.js. */
+@import "tailwindcss" source(none);
 @source "./index.html";
 @source "./app.js";
 
