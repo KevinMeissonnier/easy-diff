@@ -29,11 +29,12 @@ export const Analysis = z.object({
 export type Analysis = z.infer<typeof Analysis>;
 
 /**
- * Claude Code's headless `--output-format json` wraps the final result in an envelope
- * whose exact shape may evolve; `--json-schema` may return the structured value either
- * inline or as a JSON-encoded string in that envelope. Rather than hard-coupling to one
- * shape, we try several plausible extraction points and validate each against our own
- * schema, so this keeps working even if the envelope shape shifts slightly.
+ * Claude Code's headless `--output-format json` + `--json-schema` envelope (confirmed
+ * against a live invocation, see test/fixtures/claude-envelope.*.json) carries the
+ * structured value pre-parsed under `structured_output`, alongside a `result` field that
+ * is the same value JSON-encoded as a string. We prefer `structured_output` (no need to
+ * re-parse) but keep the other extraction points as a fallback in case the envelope shape
+ * shifts across Claude Code versions.
  */
 export function extractAnalysis(raw: string): Analysis {
   const candidates = collectJsonCandidates(raw);
@@ -66,6 +67,9 @@ function collectJsonCandidates(raw: string): unknown[] {
   consider(outer);
 
   if (outer && typeof outer === 'object') {
+    // Checked first: the confirmed, already-parsed field in a real envelope.
+    consider((outer as Record<string, unknown>).structured_output);
+
     for (const key of ['result', 'structured_result', 'output', 'content']) {
       const value = (outer as Record<string, unknown>)[key];
       if (typeof value === 'string') {

@@ -1,10 +1,16 @@
 import { execFile } from 'node:child_process';
+import fs from 'node:fs';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
 // Kept in sync with templates/commands/easy-diff-report.md's own `allowed-tools`
 // frontmatter — that grants the tools without prompting, this is the hard boundary.
+//
+// Do NOT add --restricted/--tools here: verified against a live invocation that it makes
+// Claude Code fail to resolve custom slash commands at all ("Unknown command:
+// /easy-diff-report"), presumably because it tears down the mechanism slash commands rely
+// on. --allowedTools/--disallowedTools + --permission-mode plan is what actually works.
 const ALLOWED_TOOLS = [
   'Read',
   'Grep',
@@ -35,13 +41,16 @@ export interface RunAnalysisOptions {
  */
 export async function runAnalysis(options: RunAnalysisOptions): Promise<string> {
   const { cwd, base, settingsFile, schemaFile } = options;
+  // Unlike --settings, --json-schema takes the schema inline (as a JSON string), not a
+  // file path — confirmed against a live `claude --help` and a real invocation.
+  const schema = fs.readFileSync(schemaFile, 'utf8');
   const args = [
     '-p',
     `/easy-diff-report ${base}`,
     '--settings',
     settingsFile,
     '--json-schema',
-    schemaFile,
+    schema,
     '--permission-mode',
     'plan',
     '--output-format',
