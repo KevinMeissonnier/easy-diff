@@ -1,0 +1,30 @@
+{
+  "name": "easy-diff",
+  "version": "0.1.0",
+  "description": "Turn a git diff into a narrated, step-by-step review — as if an agent were presenting its own work, instead of a raw diff you have to reverse-engineer.",
+  "type": "module",
+  "bin": {
+    "easy-diff": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && chmod +x dist/cli.js",
+    "dev": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.3"
+  }
+}
