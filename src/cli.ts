@@ -18,10 +18,11 @@ program
   .description(
     'Scaffold the Claude Code command, isolated guard settings and .gitignore entry into the current repo.'
   )
+  .argument('[language]', 'report language: en or fr (default: en)')
   .option('-f, --force', 'overwrite existing scaffold files')
-  .action((opts: { force?: boolean }) => {
+  .action((language: string | undefined, opts: { force?: boolean }) => {
     try {
-      init({ force: opts.force });
+      init({ force: opts.force, language });
     } catch (error) {
       fail(error);
     }

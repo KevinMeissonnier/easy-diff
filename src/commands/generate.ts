@@ -19,7 +19,9 @@ export async function generate(options: GenerateOptions = {}): Promise<void> {
     ['settings', paths.settingsFile],
     ['hook', paths.hookFile],
     ['validate-hook', paths.validateHookFile],
+    ['validate-language-hook', paths.validateLanguageHookFile],
     ['schema', paths.schemaFile],
+    ['config', paths.configFile],
   ];
   for (const [label, file] of requiredFiles) {
     if (!fs.existsSync(file)) {

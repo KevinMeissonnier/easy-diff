@@ -23,7 +23,9 @@ export interface TargetPaths {
   settingsFile: string;
   hookFile: string;
   validateHookFile: string;
+  validateLanguageHookFile: string;
   schemaFile: string;
+  configFile: string;
   gitignoreFile: string;
 }
 
@@ -38,7 +40,9 @@ export function targetPaths(repoRoot: string): TargetPaths {
     settingsFile: path.join(repoRoot, CONFIG_DIR, 'settings.json'),
     hookFile: path.join(repoRoot, CONFIG_DIR, 'hooks', 'guard.cjs'),
     validateHookFile: path.join(repoRoot, CONFIG_DIR, 'hooks', 'validate-analysis.cjs'),
+    validateLanguageHookFile: path.join(repoRoot, CONFIG_DIR, 'hooks', 'validate-language.cjs'),
     schemaFile: path.join(repoRoot, CONFIG_DIR, 'analysis.schema.json'),
+    configFile: path.join(repoRoot, CONFIG_DIR, 'config.json'),
     gitignoreFile: path.join(repoRoot, '.gitignore'),
   };
 }
