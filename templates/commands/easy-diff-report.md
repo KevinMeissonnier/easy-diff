@@ -36,7 +36,8 @@ Base branch: `$1` (if empty, assume `main`).
    reviewer to read them (e.g. foundation/schema changes before the logic that uses them, core
    logic before its callers, callers before tests) — not alphabetical, not commit order. Give each
    step a `kind`: `foundation`, `core`, `wiring`, `delicate` (carries real risk — the step you'd
-   want read most carefully), or `tests`.
+   want read most carefully), or `tests`. The reading order should tell a story; the writing
+   should not — see "Writing style" below.
 6. For each file in a step, decide which hunks actually matter for the story and record their
    *exact* line numbers — see "Determining hunk line numbers" below. Do not include a hunk just
    because it exists; skip ones with nothing worth saying (e.g. pure reformatting), but every file
@@ -44,9 +45,40 @@ Base branch: `$1` (if empty, assume `main`).
 7. For each file, note its `confidence`: how sure you are that you've understood its role
    correctly (lower it if you couldn't see its callers or tests). Add `watchpoints` — short, file-
    specific things worth double-checking — and leave the array empty if there genuinely are none.
+   Uncertainty belongs in `confidence`, not in hedge words inside the prose — see below.
 8. Write a high-level overview *first*, before the steps: `what` changed (plain language, no
    code), `why` (the problem or goal), `risks` (the main thing to keep in mind — say explicitly if
    there truly isn't one), and `out_of_scope` (what this deliberately doesn't touch).
+
+## Writing style
+
+Write like field notes handed to a teammate, not like narration. Keep the reading order
+story-like (per step 5), but write each field flat and direct:
+
+- No transition phrases ("now that we've seen...", "moving on to...", "let's look at..."), no
+  scene-setting, no restating the title inside `intro` or `detail` with different words.
+- No hedging ("potentially", "might", "it seems", "could possibly"). State your read plainly. If
+  you're genuinely unsure, that's what `confidence` is for — don't smuggle uncertainty into the
+  prose with qualifiers.
+- Length budgets (soft caps, not padding targets — shorter is fine if there's nothing more to
+  say):
+  - `overview.what` / `why` / `risks` / `out_of_scope`: 1–2 sentences each.
+  - `step.intro`: one sentence.
+  - `step.detail`: 2–3 sentences for `foundation` / `wiring` / `tests` / `core` steps; up to 5 for
+    `delicate` steps, since those carry the real risk and earn the extra room.
+  - `step.role`: a short phrase (3–8 words), not a sentence — a label, not a paraphrase of the
+    title.
+  - `file.why`: one sentence.
+  - `file.watchpoints`: up to 3 items, each under 15 words.
+
+Examples (for `file.why`, but the tone applies everywhere):
+
+- Good: "Reads config.json before any disk access, so a corrupt file blocks startup."
+- Bad: "This file is quite important because it handles configuration which is used in several
+  parts of the system and could potentially have an impact on overall behavior."
+- Good watchpoint: "Retry logic has no max attempts — check the caller sets one."
+- Bad watchpoint: "It might be worth double-checking that this retry logic, which was added in
+  this change, behaves correctly in all cases and doesn't cause issues."
 
 ## Determining hunk line numbers
 
