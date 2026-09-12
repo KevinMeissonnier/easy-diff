@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+body{margin:0;background:#f0eee9;font-family:'Kalam',system-ui,sans-serif}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}
+.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}
+.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}
+.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}
+.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}
+.hd{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1.5px solid #1a1a1a;font-size:14px;color:#1a1a1a}
+.dot{width:14px;height:14px;border:1.5px solid #1a1a1a;border-radius:4px;flex:none}
+.ln{height:7px;border-radius:4px;background:#dedbd5;display:block}
+.lns{display:flex;flex-direction:column;gap:7px}
+.bx{border:1.5px dashed #b9b5ad;border-radius:6px}
+.sol{border:1.5px solid #1a1a1a;border-radius:6px}
+.pill{border:1.5px solid #1a1a1a;border-radius:99px;padding:3px 11px;font-size:13px;white-space:nowrap}
+.pill.g{border-color:#b9b5ad;color:#8a857c}
+.ai{border:1.5px solid #7b6fd0;border-radius:6px;background:#f4f2fd}
+.aitag{font-size:12px;color:#5a4fae;letter-spacing:.04em;text-transform:uppercase}
+.mono{font-family:'JetBrains Mono',monospace;font-size:11px;color:#6f6a62}
+.cap{font-size:13px;color:#8a857c}
+.h{font-size:19px;color:#1a1a1a;line-height:1.15}
+.code{background:#f6f5f2;border:1.5px solid #ddd9d2;border-radius:6px;padding:10px;display:flex;flex-direction:column;gap:5px}
+.cl{display:flex;gap:8px;align-items:center}
+.cl .ln{flex:0 0 auto}
+.gut{font-family:'JetBrains Mono',monospace;font-size:10px;color:#b3aea5;width:16px;text-align:right;flex:none}
+.add{background:#cfe6d5}
+.del{background:#f0cfd4}
+.chk{width:13px;height:13px;border:1.5px solid #1a1a1a;border-radius:3px;flex:none}
+.chk.on{background:#1a1a1a}
+.col{display:flex;flex-direction:column}
+.fhd{display:flex;align-items:center;gap:8px;padding:7px 9px;background:#f0eee9;border-bottom:1.5px dashed #ddd9d2}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Les deux pistes retenues — vue d'ensemble et parcours guidé</span></div>
+
+<div class="dv-opts">
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Vue d'ensemble « trois questions » — quoi / pourquoi / risques, puis la frise des étapes</div>
+<div class="dv-card" style="width:660px">
+  <div class="hd"><span class="mono">!418</span><span class="ln" style="width:120px"></span><span style="flex:1"></span><span class="pill g">Diff brut</span><span class="pill">Résumé</span></div>
+  <div style="padding:16px;display:flex;flex-direction:column;gap:14px">
+    <div class="lns"><span class="ln" style="width:64%;height:17px"></span></div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+      <div class="bx" style="padding:11px;display:flex;flex-direction:column;gap:7px"><span class="cap">Ce que ça fait</span><div class="lns"><span class="ln" style="width:96%"></span><span class="ln" style="width:88%"></span><span class="ln" style="width:60%"></span></div></div>
+      <div class="ai" style="padding:11px;display:flex;flex-direction:column;gap:7px"><span class="aitag">Pourquoi</span><div class="lns"><span class="ln" style="width:92%"></span><span class="ln" style="width:84%"></span><span class="ln" style="width:70%"></span></div></div>
+      <div class="bx" style="padding:11px;display:flex;flex-direction:column;gap:7px"><span class="cap">Risques</span><div class="lns"><span class="ln" style="width:90%"></span><span class="ln" style="width:66%"></span></div></div>
+    </div>
+    <div class="cap">Frise du parcours</div>
+    <div style="display:flex;align-items:center;gap:0">
+      <div class="col" style="flex:1;gap:6px;align-items:center"><span class="chk on"></span><span class="mono">01</span><span class="ln" style="width:70%"></span></div>
+      <div class="ln" style="width:22px;height:2px"></div>
+      <div class="col" style="flex:1;gap:6px;align-items:center"><span class="chk on"></span><span class="mono">02</span><span class="ln" style="width:70%"></span></div>
+      <div class="ln" style="width:22px;height:2px"></div>
+      <div class="col" style="flex:1;gap:6px;align-items:center"><span class="chk"></span><span class="mono">03</span><span class="ln" style="width:70%"></span></div>
+      <div class="ln" style="width:22px;height:2px"></div>
+      <div class="col" style="flex:1;gap:6px;align-items:center"><span class="chk"></span><span class="mono">04</span><span class="ln" style="width:70%"></span></div>
+      <div class="ln" style="width:22px;height:2px"></div>
+      <div class="col" style="flex:1;gap:6px;align-items:center"><span class="chk"></span><span class="mono">05</span><span class="ln" style="width:70%"></span></div>
+      <div class="ln" style="width:22px;height:2px"></div>
+      <div class="col" style="flex:1;gap:6px;align-items:center"><span class="chk"></span><span class="mono">06</span><span class="ln" style="width:70%"></span></div>
+    </div>
+    <div class="bx" style="padding:0;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 11px;border-bottom:1.5px dashed #b9b5ad"><span class="cap">Les 9 fichiers, ordre brut</span><span style="flex:1"></span><span class="mono">non guidé</span></div>
+      <div style="padding:11px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;gap:9px;align-items:center"><span class="chk on"></span><span class="mono">src/auth/token_service.py</span><span style="flex:1"></span><span class="ln add" style="width:34px"></span><span class="ln del" style="width:14px"></span></div>
+        <div style="display:flex;gap:9px;align-items:center"><span class="chk"></span><span class="mono">src/cache/redis_store.py</span><span style="flex:1"></span><span class="ln add" style="width:52px"></span></div>
+        <div style="display:flex;gap:9px;align-items:center"><span class="chk"></span><span class="mono">tests/test_token_cache.py</span><span style="flex:1"></span><span class="ln add" style="width:44px"></span><span class="ln del" style="width:9px"></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1e">
+<div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a>Étape — narration à gauche, code à droite : une étape rassemble tous les fichiers qu'elle touche</div>
+<div class="dv-card" style="width:720px">
+  <div class="hd"><span class="mono">!418</span><span class="ln" style="width:110px"></span><span style="flex:1"></span><span class="cap">Couverture 2 / 6</span><span class="pill g">Diff brut</span></div>
+  <div style="display:grid;grid-template-columns:96px minmax(0,1fr) minmax(0,1.3fr);min-height:340px">
+    <div style="border-right:1.5px dashed #b9b5ad;padding:12px 9px;display:flex;flex-direction:column;gap:9px">
+      <span class="cap">Étapes</span>
+      <div style="display:flex;gap:6px;align-items:center"><span class="chk on"></span><span class="ln" style="width:40px"></span></div>
+      <div style="display:flex;gap:6px;align-items:center"><span class="chk on"></span><span class="ln" style="width:34px"></span></div>
+      <div style="display:flex;gap:6px;align-items:center"><span class="chk" style="border-width:2.5px"></span><span class="ln" style="width:46px;background:#7b6fd0"></span></div>
+      <div style="display:flex;gap:6px;align-items:center"><span class="chk"></span><span class="ln" style="width:38px"></span></div>
+      <div style="display:flex;gap:6px;align-items:center"><span class="chk"></span><span class="ln" style="width:44px"></span></div>
+      <div style="display:flex;gap:6px;align-items:center"><span class="chk"></span><span class="ln" style="width:30px"></span></div>
+    </div>
+
+    <div style="padding:14px;display:flex;flex-direction:column;gap:12px;border-right:1.5px dashed #b9b5ad">
+      <span class="mono">Étape 03 / 06</span>
+      <div class="lns"><span class="ln" style="width:88%;height:15px"></span><span class="ln" style="width:52%;height:15px"></span></div>
+      <div class="lns"><span class="ln" style="width:94%"></span><span class="ln" style="width:86%"></span><span class="ln" style="width:48%"></span></div>
+      <span class="cap">Les 3 fichiers de l'étape</span>
+      <div class="col" style="gap:7px">
+        <div class="sol" style="padding:8px 9px;display:flex;gap:7px;align-items:center"><span class="chk on"></span><span class="mono" style="color:#1a1a1a">token_service.py</span><span style="flex:1"></span><span class="mono">+18 −6</span></div>
+        <div class="sol" style="padding:8px 9px;display:flex;gap:7px;align-items:center;border-color:#7b6fd0;background:#f4f2fd"><span class="chk" style="border-width:2.5px;border-color:#7b6fd0"></span><span class="mono" style="color:#5a4fae">deps.py</span><span style="flex:1"></span><span class="mono" style="color:#5a4fae">+9</span></div>
+        <div class="bx" style="padding:8px 9px;display:flex;gap:7px;align-items:center"><span class="chk"></span><span class="mono">settings.py</span><span style="flex:1"></span><span class="mono">+4 −1</span></div>
+      </div>
+      <div class="cap">↑ on clique un fichier, la colonne de droite s'y déplace</div>
+      <div style="flex:1"></div>
+      <div style="display:flex;gap:8px"><span class="pill" style="border-color:#7b6fd0;color:#5a4fae">Vu, suivant ▸</span><span class="pill g">Question</span></div>
+    </div>
+
+    <div style="display:flex;flex-direction:column">
+      <div style="display:flex;gap:8px;padding:8px 11px;border-bottom:1.5px dashed #b9b5ad;align-items:center"><span class="mono" style="color:#1a1a1a">src/api/deps.py</span><span style="flex:1"></span><span class="mono">+9</span><span class="pill g" style="font-size:12px">◂ ▸</span></div>
+      <div style="padding:11px;display:flex;flex-direction:column;gap:11px">
+        <div class="ai" style="padding:11px;display:flex;flex-direction:column;gap:7px">
+          <div class="aitag">Pourquoi ce changement</div>
+          <div class="lns"><span class="ln" style="width:96%"></span><span class="ln" style="width:90%"></span><span class="ln" style="width:82%"></span><span class="ln" style="width:54%"></span></div>
+        </div>
+        <div class="bx" style="padding:10px;display:flex;flex-direction:column;gap:7px">
+          <span class="cap">⚑ À vérifier dans ce fichier</span>
+          <div class="lns"><span class="ln" style="width:92%"></span><span class="ln" style="width:70%"></span></div>
+        </div>
+        <div class="code">
+          <div class="cl"><span class="gut">12</span><span class="ln" style="width:34%"></span></div>
+          <div class="cl"><span class="gut">13</span><span class="ln add" style="width:80%"></span></div>
+          <div class="cl"><span class="gut">14</span><span class="ln add" style="width:62%"></span></div>
+          <div class="cl"><span class="gut">15</span><span class="ln add" style="width:48%"></span></div>
+        </div>
+        <div class="cap" style="text-align:center">⋯ 21 lignes inchangées repliées ⋯</div>
+        <div class="code">
+          <div class="cl"><span class="gut">37</span><span class="ln" style="width:40%"></span></div>
+          <div class="cl"><span class="gut">38</span><span class="ln del" style="width:66%"></span></div>
+          <div class="cl"><span class="gut">38</span><span class="ln add" style="width:74%"></span></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center"><span class="pill g">◂ token_service.py</span><span style="flex:1"></span><span class="pill">settings.py ▸</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">À essayer : « fusionne <a class="dv-oid" href="#1c">1c</a> et <a class="dv-oid" href="#1e">1e</a> dans un seul parcours » · « dans <a class="dv-oid" href="#1e">1e</a>, ajoute le commentaire de l'agent au niveau de chaque fichier » · « montre <a class="dv-oid" href="#1e">1e</a> avec le diff brut ouvert par-dessus »</p>
+</section>
+
+</x-dc>
+</body>
+</html>

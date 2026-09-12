@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="_ds/nocturne-81bb63a9-566a-436f-83c7-c205115797b1/styles.css">
+<script src="_ds/nocturne-81bb63a9-566a-436f-83c7-c205115797b1/_ds_bundle.js"></script>
+<style>
+  html,body{margin:0;background:#161826}
+  a{color:var(--color-accent-300);text-decoration:none}
+  a:hover{color:var(--color-accent-200)}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:#3f424d;border-radius:8px}
+  ::-webkit-scrollbar-track{background:transparent}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;display:flex;flex-direction:column;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased">
+
+  <header style="display:flex;align-items:center;gap:16.8px;padding:11.2px 22.4px;border-bottom:1px solid var(--color-divider);flex:none">
+    <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--color-neutral-600)">!418</span>
+    <span style="color:var(--color-neutral-400);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px">Cache des jetons de session côté Redis</span>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:8.4px;font-size:12px;color:var(--color-neutral-500)">
+      <span>{{ coverageLabel }}</span>
+      <div style="width:84px;height:3px;border-radius:3px;background:var(--color-neutral-900);overflow:hidden">
+        <div style="height:100%;background:var(--color-accent);transition:width 300ms ease;width:{{ coveragePct }}"></div>
+      </div>
+    </div>
+    <button class="btn btn-ghost" style="font-size:12.5px" onClick="{{ toggleRaw }}">Diff brut</button>
+  </header>
+
+  <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+    <main style="flex:1;overflow:auto">
+      <div style="max-width:1080px;margin:0 auto;padding:50.4px 33.6px 67.2px;animation:rise 300ms ease both">
+        <h1 style="font-family:var(--font-heading);font-weight:500;font-size:38px;line-height:1.14;letter-spacing:-.02em;margin:0 0 11.2px;max-width:20ch;text-wrap:pretty">Cache des jetons de session côté Redis</h1>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--color-neutral-600);margin-bottom:33.6px">feat/session-cache → main · 11 commits · 9 fichiers · +284 −96</div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16.8px;margin-bottom:44.8px">
+          <div class="card" style="padding:16.8px">
+            <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:11.2px">Ce que ça fait</div>
+            <p style="margin:0;color:var(--color-neutral-200);font-size:14.5px;text-wrap:pretty">Un cache Redis est placé devant la vérification des jetons de session. Le contrat public de <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--color-accent-300)">TokenService.verify()</code> ne change pas : mêmes signatures, mêmes exceptions.</p>
+          </div>
+          <div class="card" style="padding:16.8px;border-left:2px solid var(--color-accent)">
+            <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-400);margin-bottom:11.2px">Pourquoi</div>
+            <p style="margin:0;color:var(--color-neutral-200);font-size:14.5px;text-wrap:pretty">Chaque requête authentifiée fait aujourd'hui un aller-retour Postgres pour revalider un jeton déjà vérifié quelques millisecondes plus tôt. Sur le pic du matin, c'est 40 % des requêtes de la base.</p>
+          </div>
+          <div class="card" style="padding:16.8px">
+            <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:11.2px">Risques</div>
+            <p style="margin:0;color:var(--color-neutral-200);font-size:14.5px;text-wrap:pretty">Un jeton révoqué qui resterait en cache serait accepté à tort. L'étape 4 traite ce point ; c'est celle qui mérite le plus d'attention.</p>
+          </div>
+        </div>
+
+        <h2 style="font-family:var(--font-heading);font-weight:500;font-size:17px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-400);margin:0 0 22.4px">Chemin de relecture</h2>
+
+        <ol style="list-style:none;margin:0 0 44.8px;padding:0;display:flex;flex-direction:column;gap:2px">
+          <sc-for list="{{ steps }}" as="s" hint-placeholder-count="6">
+            <li style="display:grid;grid-template-columns:28px minmax(0,1fr) 190px 92px;gap:16.8px;align-items:baseline;padding:14px 11.2px;border-radius:8px;cursor:pointer;border:1px solid transparent;border-bottom:1px solid var(--color-divider)" style-hover="background:var(--color-neutral-900);border-color:var(--color-neutral-800)" onClick="{{ s.open }}">
+              <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:{{ s.numColor }}">{{ s.num }}</span>
+              <span style="min-width:0">
+                <span style="display:block;color:var(--color-neutral-100);font-size:15.5px">{{ s.title }}</span>
+                <span style="display:block;color:var(--color-neutral-500);font-size:13px;margin-top:2px;text-wrap:pretty">{{ s.role }}</span>
+              </span>
+              <span style="font-size:12.5px;color:var(--color-neutral-600);font-family:'JetBrains Mono',monospace">{{ s.fileLabel }}</span>
+              <span style="font-size:12px;color:{{ s.stateColor }};text-align:right">{{ s.stateLabel }}</span>
+            </li>
+          </sc-for>
+        </ol>
+
+        <div style="display:flex;gap:11.2px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-primary" style="font-size:14px;padding:10px 20px" onClick="{{ startWalk }}">{{ startLabel }}</button>
+          <button class="btn btn-ghost" style="font-size:13px" onClick="{{ toggleRaw }}">Ouvrir le diff brut</button>
+          <span style="color:var(--color-neutral-600);font-size:12.5px">≈ 7 min de lecture guidée</span>
+        </div>
+      </div>
+    </main>
+  </sc-if>
+
+  <sc-if value="{{ isWalk }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:1;display:grid;grid-template-columns:196px minmax(280px,0.9fr) minmax(0,1.35fr);min-height:0">
+
+      <nav style="border-right:1px solid var(--color-divider);padding:16.8px 11.2px;display:flex;flex-direction:column;gap:2px;overflow:auto">
+        <button style="display:flex;align-items:center;gap:8.4px;text-align:left;background:transparent;border:none;border-radius:6px;padding:8.4px 11.2px;cursor:pointer;font-family:var(--font-body);font-size:13px;color:var(--color-neutral-400);margin-bottom:11.2px" style-hover="background:var(--color-neutral-900);color:var(--color-accent-200)" onClick="{{ goOverview }}">
+          <svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"></path></svg>
+          <span>Retour</span>
+        </button>
+        <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);padding:0 11.2px 11.2px">Étapes</div>
+        <sc-for list="{{ steps }}" as="s" hint-placeholder-count="6">
+          <button style="display:grid;grid-template-columns:14px minmax(0,1fr);gap:8.4px;align-items:start;text-align:left;border:none;border-radius:6px;padding:8.4px 11.2px;cursor:pointer;font-family:var(--font-body);font-size:13px;line-height:1.35;background:{{ s.navBg }};color:{{ s.navFg }}" style-hover="background:var(--color-neutral-900)" onClick="{{ s.open }}">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:{{ s.numColor }};padding-top:2px">{{ s.mark }}</span>
+            <span style="min-width:0;text-wrap:pretty">{{ s.title }}</span>
+          </button>
+        </sc-for>
+      </nav>
+
+      <section style="border-right:1px solid var(--color-divider);padding:28px 22.4px;overflow:auto;display:flex;flex-direction:column;gap:16.8px">
+        <div key="{{ stepKey }}" style="animation:rise 240ms ease both;display:flex;flex-direction:column;gap:16.8px;flex:1">
+          <div style="display:flex;align-items:center;gap:8.4px">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--color-accent-400)">{{ stepCounter }}</span>
+            <span class="tag tag-outline" style="font-size:11px">{{ step.kind }}</span>
+          </div>
+          <h2 style="font-family:var(--font-heading);font-weight:500;font-size:24px;line-height:1.2;letter-spacing:-.01em;margin:0;text-wrap:pretty">{{ step.title }}</h2>
+          <p style="margin:0;color:var(--color-neutral-300);font-size:14.5px;text-wrap:pretty">{{ step.intro }}</p>
+          <p style="margin:0;color:var(--color-neutral-500);font-size:13.5px;text-wrap:pretty">{{ step.detail }}</p>
+
+          <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-600);margin-top:5.6px">{{ fileHeading }}</div>
+          <div style="display:flex;flex-direction:column;gap:5.6px">
+            <sc-for list="{{ stepFiles }}" as="f" hint-placeholder-count="3">
+              <button style="display:grid;grid-template-columns:14px minmax(0,1fr) auto;gap:8.4px;align-items:center;text-align:left;cursor:pointer;padding:9px 11.2px;border-radius:8px;font-family:var(--font-body);border:1px solid {{ f.border }};background:{{ f.bg }}" style-hover="border-color:var(--color-neutral-700)" onClick="{{ f.open }}">
+                <span style="font-size:12px;color:{{ f.markColor }}">{{ f.mark }}</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:{{ f.fg }};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.name }}</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--color-neutral-600)">{{ f.churn }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <div style="flex:1"></div>
+          <div style="display:flex;gap:8.4px;align-items:center;flex-wrap:wrap;padding-top:11.2px;border-top:1px solid var(--color-divider)">
+            <button class="btn btn-primary" style="font-size:13px" onClick="{{ markSeen }}">{{ nextLabel }}</button>
+            <button class="btn btn-ghost" style="font-size:13px" onClick="{{ prevStep }}">◂ Étape précédente</button>
+          </div>
+        </div>
+      </section>
+
+      <section style="overflow:auto;display:flex;flex-direction:column;min-width:0">
+        <div style="display:flex;align-items:center;gap:11.2px;padding:11.2px 22.4px;border-bottom:1px solid var(--color-divider);position:sticky;top:0;background:var(--color-bg);z-index:5">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--color-neutral-200);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ file.path }}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--color-neutral-600);white-space:nowrap">{{ file.churn }}</span>
+          <div style="flex:1"></div>
+          <button class="btn btn-ghost" style="font-size:12px" onClick="{{ prevFile }}">◂</button>
+          <span style="font-size:12px;color:var(--color-neutral-600);white-space:nowrap">{{ fileCounter }}</span>
+          <button class="btn btn-ghost" style="font-size:12px" onClick="{{ nextFile }}">▸</button>
+        </div>
+
+        <div key="{{ fileKey }}" style="padding:22.4px;display:flex;flex-direction:column;gap:16.8px;animation:rise 220ms ease both">
+          <div class="card" style="padding:16.8px;border-left:2px solid var(--color-accent)">
+            <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-accent-400);margin-bottom:8.4px">Pourquoi ce changement</div>
+            <p style="margin:0;color:var(--color-neutral-200);font-size:14.5px;text-wrap:pretty">{{ file.why }}</p>
+          </div>
+
+          <sc-if value="{{ hasWatch }}" hint-placeholder-val="{{ false }}">
+            <div class="card" style="padding:16.8px">
+              <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--color-neutral-500);margin-bottom:8.4px">À vérifier</div>
+              <ul style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8.4px">
+                <sc-for list="{{ watch }}" as="w" hint-placeholder-count="2">
+                  <li style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:8.4px;align-items:start">
+                    <span style="width:5px;height:5px;border-radius:50%;background:var(--color-accent-500);margin-top:7px"></span>
+                    <span style="color:var(--color-neutral-300);font-size:13.5px;text-wrap:pretty">{{ w }}</span>
+                  </li>
+                </sc-for>
+              </ul>
+            </div>
+          </sc-if>
+
+          <sc-for list="{{ hunks }}" as="h" hint-placeholder-count="2">
+            <div style="border:1px solid var(--color-neutral-800);border-radius:8px;overflow:hidden">
+              <div style="padding:5.6px 11.2px;background:var(--color-neutral-900);font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--color-neutral-500);border-bottom:1px solid var(--color-neutral-800)">{{ h.label }}</div>
+              <div style="padding:8.4px 0;background:#1b1d2b">
+                <sc-for list="{{ h.lines }}" as="l" hint-placeholder-count="6">
+                  <div style="display:grid;grid-template-columns:40px 12px minmax(0,1fr);gap:8.4px;padding:1px 11.2px;background:{{ l.bg }}">
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--color-neutral-700);text-align:right">{{ l.n }}</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:{{ l.sigColor }}">{{ l.sig }}</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:{{ l.fg }};white-space:pre-wrap;word-break:break-word">{{ l.code }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+
+          <div style="display:flex;gap:8.4px;align-items:center">
+            <button class="btn btn-secondary" style="font-size:12.5px" onClick="{{ markSeen }}">Marquer ce fichier comme vu</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ rawOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;background:rgba(10,11,18,.62);display:flex;justify-content:flex-end;z-index:40" onClick="{{ toggleRaw }}">
+      <div style="width:min(720px,92vw);height:100%;background:var(--color-bg);border-left:1px solid var(--color-neutral-800);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;animation:rise 200ms ease both" onClick="{{ stop }}">
+        <div style="display:flex;align-items:center;gap:11.2px;padding:16.8px 22.4px;border-bottom:1px solid var(--color-divider)">
+          <span style="font-family:var(--font-heading);font-size:16px">Diff brut</span>
+          <span style="font-size:12.5px;color:var(--color-neutral-600)">9 fichiers, ordre du dépôt — aucun commentaire</span>
+          <span class="tag tag-outline" style="font-size:11px">{{ coverageLabel }}</span>
+          <div style="flex:1"></div>
+          <button class="btn btn-ghost" style="font-size:12.5px" onClick="{{ toggleRaw }}">Fermer</button>
+        </div>
+        <div style="overflow:auto;padding:11.2px 22.4px 33.6px">
+          <sc-for list="{{ allFiles }}" as="f" hint-placeholder-count="9">
+            <div style="display:grid;grid-template-columns:14px minmax(0,1fr) auto auto;gap:11.2px;align-items:center;padding:11.2px 0;border-bottom:1px solid var(--color-divider);cursor:pointer" onClick="{{ f.open }}">
+              <span style="font-size:12px;color:{{ f.markColor }}">{{ f.mark }}</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--color-neutral-300);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.path }}</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--color-neutral-600)">{{ f.churn }}</span>
+              <span style="font-size:11.5px;color:var(--color-neutral-600)">{{ f.stepLabel }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showWatchpoints&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Narration&quot;}}">
+const D = (t) => t;
+const STEPS = [
+  {
+    num: "01", mark: "01", kind: "Fondation", title: "Un contrat avant une implémentation",
+    role: "Définit l'interface que le cache doit respecter",
+    intro: "Avant d'écrire quoi que ce soit de spécifique à Redis, j'ai posé le contrat minimal dont le service d'authentification a besoin : lire, écrire avec une durée de vie, supprimer.",
+    detail: "Trois méthodes seulement. Tout ce qui n'y figure pas (pipelines, scan, statistiques) est délibérément absent : le service ne doit pas pouvoir en dépendre.",
+    files: [{
+      path: "src/cache/base.py", churn: "+22", why: "Un Protocol plutôt qu'une classe de base abstraite : les tests peuvent passer un simple dictionnaire sans hériter de quoi que ce soit, et Redis reste une dépendance de la couche infrastructure seulement.",
+      watch: [],
+      hunks: [{ label: "nouveau fichier", start: 1, body: [
+        "+from typing import Protocol",
+        "+",
+        "+class TokenCache(Protocol):",
+        "+    def get(self, jti: str) -> dict | None: ...",
+        "+    def put(self, jti: str, claims: dict, ttl: int) -> None: ...",
+        "+    def drop(self, jti: str) -> None: ...",
+      ]}]
+    }]
+  },
+  {
+    num: "02", mark: "02", kind: "Implémentation", title: "L'implémentation Redis du contrat",
+    role: "La seule classe qui connaît Redis",
+    intro: "Une seule classe implémente le contrat. Les clés sont préfixées et la durée de vie est déléguée à Redis plutôt que gérée à la main.",
+    detail: "La sérialisation reste en JSON : les claims sont un dictionnaire plat, et un format lisible facilite le débogage en production.",
+    files: [{
+      path: "src/cache/redis_store.py", churn: "+58", why: "La durée de vie est passée à SETEX plutôt que gérée par un champ d'expiration dans la valeur : Redis fait déjà ce travail, et un TTL natif évite d'avoir à purger.",
+      watch: ["Le préfixe de clé est codé ici et repris dans revocation.py — les deux doivent rester alignés."],
+      hunks: [{ label: "nouveau fichier", start: 1, body: [
+        "+import json",
+        "+",
+        "+KEY = \"sess:tok:{jti}\"",
+        "+",
+        "+class RedisTokenCache:",
+        "+    def __init__(self, client):",
+        "+        self._r = client",
+        "+",
+        "+    def get(self, jti):",
+        "+        raw = self._r.get(KEY.format(jti=jti))",
+        "+        return json.loads(raw) if raw else None",
+        "+",
+        "+    def put(self, jti, claims, ttl):",
+        "+        self._r.setex(KEY.format(jti=jti), ttl, json.dumps(claims))",
+      ]}]
+    }]
+  },
+  {
+    num: "03", mark: "03", kind: "Branchement", title: "Brancher le cache sans changer le contrat public",
+    role: "Le service consulte le cache avant la base",
+    intro: "Le cache s'intercale dans verify(). La signature, les exceptions et l'ordre des vérifications restent identiques : un appelant existant ne voit aucune différence.",
+    detail: "Le cache est injecté par le conteneur de dépendances, pas construit dans le service — c'est ce qui permet aux tests de l'étape 6 de passer un faux cache.",
+    files: [
+      { path: "src/auth/token_service.py", churn: "+18 −6", why: "La lecture du cache est placée après le décodage de la signature, pas avant. Un jeton mal signé ne doit jamais servir de clé de lecture, sinon la signature ne protège plus rien.",
+        watch: ["Le chemin d'échec (cache indisponible) retombe sur la base : à confirmer à l'étape 5."],
+        hunks: [{ label: "@@ 38,7 +38,12 @@  def verify", start: 38, body: [
+          " def verify(self, token: str) -> Claims:",
+          "     jti = decode_signed(token, self.key)[\"jti\"]",
+          "-    row = self.db.fetch_session(jti)",
+          "+    cached = self.cache.get(jti)",
+          "+    if cached is not None:",
+          "+        return Claims(**cached)",
+          "+",
+          "+    row = self.db.fetch_session(jti)",
+          "     if row is None:",
+          "         raise TokenRevoked(jti)",
+        ]},
+        { label: "@@ 61,3 +66,6 @@", start: 61, body: [
+          "     claims = Claims.from_row(row)",
+          "+    self.cache.put(jti, claims.as_dict(), ttl=row.remaining_ttl)",
+          "     return claims",
+        ]}]
+      },
+      { path: "src/api/deps.py", churn: "+9", why: "Le cache est construit une fois au démarrage et injecté. Une instance par requête ouvrirait une connexion Redis par requête, ce qui annulerait le gain recherché.",
+        watch: [],
+        hunks: [{ label: "@@ 12,4 +12,13 @@", start: 12, body: [
+          " def token_service(db = Depends(get_db)) -> TokenService:",
+          "-    return TokenService(db)",
+          "+    return TokenService(db, cache=get_token_cache())",
+          "+",
+          "+@lru_cache",
+          "+def get_token_cache() -> TokenCache:",
+          "+    return build_cache(settings)",
+        ]}]
+      }
+    ]
+  },
+  {
+    num: "04", mark: "04", kind: "Point délicat", title: "L'invalidation à la révocation",
+    role: "Le cœur du risque : un jeton révoqué ne doit plus passer",
+    intro: "C'est l'étape à lire le plus attentivement. Sans elle, révoquer une session laisserait le jeton valide jusqu'à l'expiration du cache.",
+    detail: "J'ai choisi la suppression immédiate plutôt qu'un TTL court. Un TTL court réduit la fenêtre sans la fermer, et il fallait une garantie, pas une probabilité.",
+    files: [
+      { path: "src/auth/revocation.py", churn: "+14 −2", why: "La suppression du cache est faite dans la même transaction logique que la révocation en base, et avant le commit du retour à l'appelant : si Redis échoue, la révocation échoue aussi et remonte en erreur.",
+        watch: ["Ordre volontaire : base d'abord, cache ensuite. À l'inverse, une panne entre les deux laisserait un jeton révoqué en cache.", "Le cas de la révocation en masse (déconnexion de tous les appareils) boucle sur les jti — acceptable jusqu'à quelques dizaines de sessions."],
+        hunks: [{ label: "@@ 24,6 +24,18 @@  def revoke", start: 24, body: [
+          " def revoke(self, jti: str) -> None:",
+          "     self.db.mark_revoked(jti)",
+          "+    try:",
+          "+        self.cache.drop(jti)",
+          "+    except CacheUnavailable:",
+          "+        self.db.rollback()",
+          "+        raise",
+        ]}]
+      },
+      { path: "src/cache/redis_store.py", churn: "+11", why: "drop() complète le contrat. L'absence de clé n'est pas une erreur : révoquer un jeton jamais mis en cache est un cas normal.",
+        watch: [],
+        hunks: [{ label: "@@ 30,2 +30,13 @@", start: 30, body: [
+          "     def drop(self, jti):",
+          "+        try:",
+          "+            self._r.delete(KEY.format(jti=jti))",
+          "+        except RedisError as exc:",
+          "+            raise CacheUnavailable from exc",
+        ]}]
+      }
+    ]
+  },
+  {
+    num: "05", mark: "05", kind: "Configuration", title: "Dégradation quand Redis est absent",
+    role: "Le service doit démarrer et fonctionner sans cache",
+    intro: "En local et en test, aucun Redis ne tourne. Une fabrique renvoie alors un cache qui ne garde rien, ce qui ramène exactement au comportement d'avant cette MR.",
+    detail: "Le drapeau de configuration est explicite plutôt que déduit de la présence d'une URL : une variable d'environnement oubliée en production ne doit pas désactiver silencieusement le cache.",
+    files: [
+      { path: "src/cache/factory.py", churn: "+19", why: "Le cache nul implémente le même contrat et ne renvoie jamais rien. Aucun appelant n'a besoin de tester si le cache existe, ce qui évite des branches conditionnelles dans le service.",
+        watch: [],
+        hunks: [{ label: "nouveau fichier", start: 1, body: [
+          "+def build_cache(settings) -> TokenCache:",
+          "+    if not settings.session_cache_enabled:",
+          "+        return NullTokenCache()",
+          "+    return RedisTokenCache(redis.from_url(settings.redis_url))",
+        ]}]
+      },
+      { path: "src/config/settings.py", churn: "+4 −1", why: "Valeur par défaut à False. Un environnement qui n'a pas été mis à jour continue de tourner sans cache plutôt que de tenter une connexion vers une adresse absente.",
+        watch: ["À activer explicitement dans les manifestes de staging et de production avant la fusion."],
+        hunks: [{ label: "@@ 47,1 +47,5 @@", start: 47, body: [
+          "     redis_url: str = \"redis://localhost:6379/0\"",
+          "+    session_cache_enabled: bool = False",
+          "+    session_cache_ttl: int = 300",
+        ]}]
+      }
+    ]
+  },
+  {
+    num: "06", mark: "06", kind: "Filet de sécurité", title: "Les tests qui tiennent le risque",
+    role: "Vérifie surtout l'invalidation de l'étape 4",
+    intro: "Deux fichiers de test. Le premier couvre le chemin nominal, le second est celui qui compte : il échoue si l'invalidation de l'étape 4 est retirée.",
+    detail: "Aucun Redis réel n'est nécessaire : un faux cache en mémoire suffit, puisque le service dépend du contrat et non de l'implémentation.",
+    files: [
+      { path: "tests/test_token_cache.py", churn: "+44", why: "Le test compte les appels à la base : la deuxième vérification du même jeton ne doit en produire aucun. C'est la propriété recherchée par la MR, exprimée directement.",
+        watch: [],
+        hunks: [{ label: "nouveau fichier", start: 1, body: [
+          "+def test_second_verify_skips_db(svc, db_spy):",
+          "+    svc.verify(token)",
+          "+    svc.verify(token)",
+          "+    assert db_spy.fetch_session.call_count == 1",
+        ]}]
+      },
+      { path: "tests/test_revocation.py", churn: "+31 −4", why: "Le test de régression du risque principal : après révocation, une vérification doit lever TokenRevoked même si le jeton avait été mis en cache juste avant.",
+        watch: ["Si vous ne relisez qu'un seul test, relisez celui-ci."],
+        hunks: [{ label: "@@ 18,4 +18,14 @@", start: 18, body: [
+          " def test_revoked_token_is_rejected(svc):",
+          "     svc.verify(token)",
+          "+    svc.revoke(jti)",
+          "+    with pytest.raises(TokenRevoked):",
+          "+        svc.verify(token)",
+        ]}]
+      }
+    ]
+  },
+];
+
+class Component extends DCLogic {
+  state = { view: "overview", si: 0, fi: 0, seen: {}, raw: false };
+
+  key(si, fi) { return si + ":" + fi; }
+  isSeen(si, fi) { return !!this.state.seen[this.key(si, fi)]; }
+  stepSeen(si) { return STEPS[si].files.every((_, i) => this.isSeen(si, i)); }
+
+  openStep = (si) => this.setState({ view: "walk", si, fi: 0, raw: false });
+  openFile = (si, fi) => this.setState({ view: "walk", si, fi, raw: false });
+
+  advance = () => {
+    const { si, fi } = this.state;
+    const seen = { ...this.state.seen, [this.key(si, fi)]: true };
+    const step = STEPS[si];
+    if (fi + 1 < step.files.length) this.setState({ seen, fi: fi + 1 });
+    else if (si + 1 < STEPS.length) this.setState({ seen, si: si + 1, fi: 0 });
+    else this.setState({ seen, view: "overview" });
+  };
+
+  lines(hunk) {
+    let n = hunk.start - 1, out = [];
+    for (const raw of hunk.body) {
+      const sig = raw[0], code = raw.slice(1);
+      if (sig !== "-") n += 1;
+      out.push({
+        n: sig === "-" ? "" : String(n),
+        sig: sig === " " ? "" : sig,
+        code,
+        bg: sig === "+" ? "rgba(120,190,145,.10)" : sig === "-" ? "rgba(200,120,140,.10)" : "transparent",
+        fg: sig === " " ? "var(--color-neutral-500)" : "var(--color-neutral-200)",
+        sigColor: sig === "+" ? "#8fc9a4" : sig === "-" ? "#d29aa6" : "transparent",
+      });
+    }
+    return out;
+  }
+
+  renderVals() {
+    const { view, si, fi, raw } = this.state;
+    const step = STEPS[si], file = step.files[fi];
+    const totalFiles = STEPS.reduce((a, s) => a + s.files.length, 0);
+    const seenCount = Object.keys(this.state.seen).length;
+    const started = seenCount > 0;
+    const watchOn = this.props.showWatchpoints ?? true;
+
+    const steps = STEPS.map((s, i) => {
+      const done = this.stepSeen(i), cur = view === "walk" && i === si;
+      return {
+        num: s.num, mark: done ? "✓" : s.num, title: s.title, role: s.role,
+        fileLabel: s.files.length + (s.files.length > 1 ? " fichiers" : " fichier"),
+        stateLabel: done ? "vu" : cur ? "en cours" : "à lire",
+        stateColor: done ? "var(--color-neutral-600)" : cur ? "var(--color-accent-300)" : "var(--color-neutral-500)",
+        numColor: done ? "var(--color-neutral-600)" : cur ? "var(--color-accent-300)" : "var(--color-accent-600)",
+        navBg: cur ? "var(--color-accent-900)" : "transparent",
+        navFg: cur ? "var(--color-accent-200)" : done ? "var(--color-neutral-500)" : "var(--color-neutral-300)",
+        open: () => this.openStep(i),
+      };
+    });
+
+    const stepFiles = step.files.map((f, i) => {
+      const cur = i === fi, done = this.isSeen(si, i);
+      return {
+        name: f.path.split("/").slice(-1)[0], churn: f.churn,
+        mark: done ? "✓" : "○",
+        markColor: done ? "var(--color-accent-400)" : "var(--color-neutral-700)",
+        fg: cur ? "var(--color-accent-200)" : "var(--color-neutral-300)",
+        bg: cur ? "var(--color-accent-900)" : "transparent",
+        border: cur ? "var(--color-accent-700)" : "var(--color-neutral-800)",
+        open: () => this.setState({ fi: i }),
+      };
+    });
+
+    const byPath = new Map();
+    STEPS.forEach((s, i) => s.files.forEach((f, j) => {
+      const e = byPath.get(f.path) || { path: f.path, churns: [], steps: [], at: [] };
+      e.churns.push(f.churn); e.steps.push(s.num); e.at.push([i, j]);
+      byPath.set(f.path, e);
+    }));
+    const uniq = [...byPath.values()];
+    const pathSeen = (e) => e.at.every(([i, j]) => this.isSeen(i, j));
+    const allFiles = uniq.map((e) => {
+      const done = pathSeen(e);
+      const target = e.at.find(([i, j]) => !this.isSeen(i, j)) || e.at[0];
+      return {
+        path: e.path, churn: e.churns.join(" · "),
+        mark: done ? "✓" : "○",
+        markColor: done ? "var(--color-accent-400)" : "var(--color-neutral-700)",
+        stepLabel: (e.steps.length > 1 ? "étapes " : "étape ") + e.steps.join(", "),
+        open: () => this.openFile(target[0], target[1]),
+      };
+    });
+    const seenPaths = uniq.filter(pathSeen).length;
+
+    const lastFile = fi + 1 >= step.files.length;
+    return {
+      isOverview: view === "overview", isWalk: view === "walk", rawOpen: raw,
+      steps, step, stepFiles, file, allFiles,
+      hasWatch: watchOn && file.watch.length > 0,
+      watch: file.watch,
+      hunks: file.hunks.map((h) => ({ label: h.label, lines: this.lines(h) })),
+      stepKey: "s" + si, fileKey: si + "-" + fi,
+      stepCounter: "Étape " + step.num + " / 06",
+      fileCounter: (fi + 1) + " / " + step.files.length,
+      fileHeading: step.files.length > 1 ? "Les " + step.files.length + " fichiers de l'étape" : "Le fichier de l'étape",
+      nextLabel: lastFile ? (si + 1 < STEPS.length ? "Vu, étape suivante ▸" : "Vu, terminer ▸") : "Vu, fichier suivant ▸",
+      startLabel: started ? "Reprendre la relecture ▸" : "Commencer la relecture ▸",
+      coverageLabel: seenPaths + " / " + uniq.length + " fichiers vus",
+      coveragePct: Math.round((seenCount / totalFiles) * 100) + "%",
+      goOverview: () => this.setState({ view: "overview", raw: false }),
+      startWalk: () => this.setState({ view: "walk", raw: false }),
+      toggleRaw: () => this.setState({ raw: !raw }),
+      stop: (e) => e.stopPropagation(),
+      markSeen: this.advance,
+      prevStep: () => this.setState({ si: Math.max(0, si - 1), fi: 0 }),
+      prevFile: () => (fi > 0 ? this.setState({ fi: fi - 1 }) : si > 0 ? this.setState({ si: si - 1, fi: STEPS[si - 1].files.length - 1 }) : null),
+      nextFile: () => (!lastFile ? this.setState({ fi: fi + 1 }) : si + 1 < STEPS.length ? this.setState({ si: si + 1, fi: 0 }) : null),
+    };
+  }
+}
+
+</script>
+</body>
+</html>
