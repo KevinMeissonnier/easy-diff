@@ -30,7 +30,10 @@ export function init(options: InitOptions = {}): void {
     );
   }
 
-  const gitignoreStatus = ensureGitignoreEntry(paths.gitignoreFile, `${OUTPUT_DIR}/`);
+  // Anchored to the repo root: an unanchored `easy-diff/` would also match
+  // `.claude/easy-diff/` (the config dir shares that leaf name), silently gitignoring
+  // the very config files this command just created.
+  const gitignoreStatus = ensureGitignoreEntry(paths.gitignoreFile, `/${OUTPUT_DIR}/`);
   console.log(
     gitignoreStatus === 'added'
       ? `  updated  .gitignore (+ ${OUTPUT_DIR}/)`

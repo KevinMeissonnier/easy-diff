@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Analysis } from '../lib/schema.js';
 import { TEMPLATES_DIR } from '../lib/paths.js';
-import { diffForFile } from '../lib/git.js';
+import { diffForFile, diffNumstat, commitCount } from '../lib/git.js';
 
 export interface RenderedLine {
   type: 'ctx' | 'add' | 'del';
@@ -28,6 +28,7 @@ export interface FileWithHunks {
   why: string;
   watchpoints: string[];
   confidence: Analysis['steps'][number]['files'][number]['confidence'];
+  churn: { add: number; del: number };
   hunks: RenderedHunk[];
 }
 
@@ -41,16 +42,27 @@ export interface StepWithHunks {
   files: FileWithHunks[];
 }
 
+export interface ReportMeta {
+  commits: number;
+  files_changed: number;
+  insertions: number;
+  deletions: number;
+}
+
 export interface ReportData {
   version: Analysis['version'];
   merge_request: Analysis['merge_request'];
   overview: Analysis['overview'];
   base: string;
   generatedAt: string;
+  meta: ReportMeta;
   steps: StepWithHunks[];
 }
 
+const ZERO_CHURN = { add: 0, del: 0 };
+
 export function buildReportData(analysis: Analysis, base: string, cwd: string): ReportData {
+  const numstat = safeNumstat(base, cwd);
   const steps: StepWithHunks[] = analysis.steps.map((step) => ({
     id: step.id,
     kind: step.kind,
@@ -64,17 +76,31 @@ export function buildReportData(analysis: Analysis, base: string, cwd: string): 
       why: file.why,
       watchpoints: file.watchpoints,
       confidence: file.confidence,
+      churn: numstat.get(file.path) ?? ZERO_CHURN,
       hunks: pickHunks(safeDiff(base, file.path, cwd), file.hunks),
     })),
   }));
+  const meta: ReportMeta = {
+    commits: safeCommitCount(base, cwd),
+    files_changed: numstat.size,
+    insertions: sumBy(numstat, 'add'),
+    deletions: sumBy(numstat, 'del'),
+  };
   return {
     version: analysis.version,
     merge_request: analysis.merge_request,
     overview: analysis.overview,
     base,
     generatedAt: new Date().toISOString(),
+    meta,
     steps,
   };
+}
+
+function sumBy(numstat: Map<string, { add: number; del: number }>, key: 'add' | 'del'): number {
+  let total = 0;
+  for (const stat of numstat.values()) total += stat[key];
+  return total;
 }
 
 /**
@@ -155,6 +181,22 @@ function safeDiff(base: string, file: string, cwd: string): string {
     return diffForFile(base, file, cwd);
   } catch {
     return '';
+  }
+}
+
+function safeNumstat(base: string, cwd: string): Map<string, { add: number; del: number }> {
+  try {
+    return diffNumstat(base, cwd);
+  } catch {
+    return new Map();
+  }
+}
+
+function safeCommitCount(base: string, cwd: string): number {
+  try {
+    return commitCount(base, cwd);
+  } catch {
+    return 0;
   }
 }
 

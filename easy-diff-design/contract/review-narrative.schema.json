@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ReviewNarrative",
+  "description": "Narrative layer an LLM produces on top of a merge request diff. The diff itself is NOT part of this payload: the tool already has it. The model only references files and hunks by their identity and attaches prose.",
+  "type": "object",
+  "required": ["version", "merge_request", "overview", "steps"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": "1.0" },
+
+    "merge_request": {
+      "type": "object",
+      "description": "Echoed back from the input so the narrative is self-contained. The model must not invent these values.",
+      "required": ["id", "title", "source_branch", "target_branch"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "source_branch": { "type": "string" },
+        "target_branch": { "type": "string" },
+        "base_sha": { "type": "string" },
+        "head_sha": { "type": "string" }
+      }
+    },
+
+    "overview": {
+      "type": "object",
+      "description": "The high-level page. Answers why before how; must be readable without looking at any code.",
+      "required": ["what", "why", "risks"],
+      "additionalProperties": false,
+      "properties": {
+        "what": {
+          "type": "string",
+          "description": "What the MR changes, in behavioural terms. 2-4 sentences. Name the public contract and say whether it moved."
+        },
+        "why": {
+          "type": "string",
+          "description": "The problem that motivated the change. 2-4 sentences. Ground it in something observable (a metric, a bug, a constraint), never in vague improvement."
+        },
+        "risks": {
+          "type": "string",
+          "description": "What could go wrong if the change is subtly incorrect. 1-3 sentences. Point at the step that carries the risk."
+        },
+        "out_of_scope": {
+          "type": "string",
+          "description": "Optional. Related work deliberately NOT done here, so the reviewer does not look for it."
+        },
+        "estimated_reading_minutes": { "type": "integer", "minimum": 1 }
+      }
+    },
+
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The review path. Ordered by the logic of the change (contract, then implementation, then wiring, then the delicate part, then config, then tests) — NOT by file path. A file may legitimately appear in more than one step if it was touched for more than one reason.",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "title", "role", "intro", "files"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "description": "Stable slug, e.g. \"contract\"." },
+          "kind": {
+            "enum": ["foundation", "implementation", "wiring", "delicate", "configuration", "tests", "cleanup"],
+            "description": "Drives the step badge. Use \"delicate\" at most twice per MR — it is the reviewer's attention budget."
+          },
+          "title": { "type": "string", "description": "Sentence-style, no trailing period." },
+          "role": { "type": "string", "description": "One short line: this step's job in the whole. Shown in the overview list." },
+          "intro": { "type": "string", "description": "2-3 sentences. What this step does and the decision behind it." },
+          "detail": { "type": "string", "description": "Optional. Hidden in concise mode. Alternatives considered and why they were rejected." },
+          "files": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Every file this step touches, in reading order.",
+            "items": {
+              "type": "object",
+              "required": ["path", "why", "hunks"],
+              "additionalProperties": false,
+              "properties": {
+                "path": { "type": "string", "description": "Repository-relative path, exactly as in the diff." },
+                "change_type": { "enum": ["added", "modified", "deleted", "renamed"] },
+                "why": {
+                  "type": "string",
+                  "description": "Why THIS file changed the way it did. Explain the decision, not the diff — never restate lines the reviewer can read. 1-3 sentences."
+                },
+                "watchpoints": {
+                  "type": "array",
+                  "description": "Things the reviewer should actively check. Empty is a valid and common answer; do not pad. Each is one actionable sentence.",
+                  "items": { "type": "string" }
+                },
+                "confidence": {
+                  "enum": ["high", "medium", "low"],
+                  "description": "Optional. How sure the model is that this file is correct. \"low\" should always come with a watchpoint."
+                },
+                "hunks": {
+                  "type": "array",
+                  "minItems": 1,
+                  "description": "The hunks of this file that belong to this step. A file's hunks may be split across several steps: list here only those that serve THIS step's intent. Lines of code are not repeated — only their coordinates.",
+                  "items": {
+                    "type": "object",
+                    "required": ["index", "new_start", "new_lines"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "index": { "type": "integer", "minimum": 0, "description": "0-based index of the hunk within this file's diff. Fast path for the renderer." },
+                      "new_start": { "type": "integer", "minimum": 1, "description": "First line of the hunk in the file AFTER the change (the +N of the @@ header). Authoritative if index and coordinates disagree." },
+                      "new_lines": { "type": "integer", "minimum": 0, "description": "Number of lines the hunk spans after the change. new_start + new_lines - 1 is the last line." },
+                      "old_start": { "type": "integer", "minimum": 0, "description": "Optional. First line before the change (the -N of the @@ header). Set to 0 for an added file." },
+                      "old_lines": { "type": "integer", "minimum": 0, "description": "Optional. Lines spanned before the change. 0 for a pure insertion." },
+                      "focus_lines": {
+                        "type": "array",
+                        "description": "Optional. The few post-change line numbers that actually carry the decision, inside [new_start, new_start + new_lines - 1]. Lets the reader jump to the 2 lines that matter in a 30-line hunk. Omit rather than list the whole hunk.",
+                        "items": { "type": "integer", "minimum": 1 }
+                      },
+                      "label": { "type": "string", "description": "Optional short anchor shown above the code, e.g. \"def verify\"." },
+                      "note": { "type": "string", "description": "Optional inline remark about this hunk specifically. Use rarely — the file-level why carries most of the meaning." }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

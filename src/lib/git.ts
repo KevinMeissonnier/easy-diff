@@ -48,3 +48,29 @@ export function changedFiles(base: string, cwd: string): string[] {
 export function diffForFile(base: string, file: string, cwd: string): string {
   return run(['diff', `${base}...HEAD`, '--', file], cwd);
 }
+
+export function mergeBase(base: string, cwd: string): string {
+  return run(['merge-base', base, 'HEAD'], cwd);
+}
+
+/** Commits reachable from HEAD but not from the merge-base — i.e. added on this branch. */
+export function commitCount(base: string, cwd: string): number {
+  const out = run(['rev-list', '--count', `${mergeBase(base, cwd)}..HEAD`], cwd);
+  return Number(out) || 0;
+}
+
+/** Per-file insertion/deletion counts from `git diff --numstat`, keyed by path. */
+export function diffNumstat(base: string, cwd: string): Map<string, { add: number; del: number }> {
+  const out = run(['diff', '--numstat', `${base}...HEAD`], cwd);
+  const stats = new Map<string, { add: number; del: number }>();
+  if (!out) return stats;
+  for (const line of out.split('\n')) {
+    const [addStr, delStr, ...pathParts] = line.split('\t');
+    const filePath = pathParts.join('\t'); // paths essentially never contain tabs
+    if (!filePath) continue;
+    const add = Number(addStr);
+    const del = Number(delStr);
+    stats.set(filePath, { add: Number.isFinite(add) ? add : 0, del: Number.isFinite(del) ? del : 0 });
+  }
+  return stats;
+}

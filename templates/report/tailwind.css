@@ -1,0 +1,202 @@
+/*
+ * Nocturne theme, ported to Tailwind v4's CSS-first config from
+ * easy-diff-design/design/_ds/nocturne-.../styles.css (the design system handoff's source of
+ * truth for tokens — see easy-diff-design/README.md § "Design tokens"). Ported, not copied:
+ * names are adapted to read as Tailwind utilities (`--color-fg` instead of the source's
+ * `--color-text`, so classes read `text-fg` rather than the ambiguous `text-text`).
+ *
+ * This file is the INPUT to the Tailwind build (`npm run build:css`), which writes the
+ * compiled, checked-in `style.css` next to it — that generated file is what `report.ts`
+ * copies into a generated report, not this one.
+ */
+/* `source(none)` disables Tailwind's automatic content scan, which otherwise walks up to the
+   repo root and scans every non-gitignored file for candidate class names — it was picking up
+   stray strings from unrelated files (e.g. an MR id "!418" elsewhere in the repo compiled into
+   a nonsense `.pr-418` utility). The two @source lines below are the only inputs that matter:
+   this template's own index.html and app.js. */
+@import "tailwindcss" source(none);
+@source "./index.html";
+@source "./app.js";
+
+@theme {
+  /* Base surfaces */
+  --color-bg: #161826;
+  --color-surface: #232532;
+  --color-fg: #e9e9ed;
+  --color-accent: #9184d9;
+  --color-accent-2: #a7a1db;
+  --color-divider: color-mix(in srgb, #e9e9ed 16%, transparent);
+
+  /* Tonal ramps (OKLCH-derived in the source, kept as the resolved hex here) */
+  --color-neutral-100: #f3f5fe;
+  --color-neutral-200: #e4e7f5;
+  --color-neutral-300: #cfd3e5;
+  --color-neutral-400: #b2b6ca;
+  --color-neutral-500: #9397ab;
+  --color-neutral-600: #75798c;
+  --color-neutral-700: #595d6c;
+  --color-neutral-800: #3f424d;
+  --color-neutral-900: #292b31;
+
+  --color-accent-100: #f5f4ff;
+  --color-accent-200: #e7e5fe;
+  --color-accent-300: #d2cefd;
+  --color-accent-400: #b5abfc;
+  --color-accent-500: #968ae0;
+  --color-accent-600: #796cbf;
+  --color-accent-700: #5d5294;
+  --color-accent-800: #423a6a;
+  --color-accent-900: #2b2741;
+
+  /* Diff-only literal values — off-ramp per the handoff, ported verbatim */
+  --color-code-bg: #1b1d2b;
+  --color-diff-add-sign: #8fc9a4;
+  --color-diff-del-sign: #d29aa6;
+  --color-diff-add-bg: rgb(120 190 145 / 0.1);
+  --color-diff-del-bg: rgb(200 120 140 / 0.1);
+
+  /* Typography */
+  --font-heading: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Spacing — density ×0.70. Overriding the base multiplier (default 0.25rem = 4px) means
+     every numeric utility (p-4, gap-6, mb-16…) lands exactly on Nocturne's scale:
+     4 * 2.8px = 11.2px (--space-4), 6 * 2.8px = 16.8px (--space-6), 16 * 2.8px = 44.8px, etc.
+     Tailwind v4 computes spacing utilities for any number on the fly, so this covers every
+     value in the design without listing them out individually. */
+  --spacing: 2.8px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+
+  /* Elevation — a hairline edge plus ambient darkness, never a shadow stack. */
+  --shadow-sm: 0 0 0 1px #3f424d;
+  --shadow-md: 0 0 0 1px #595d6c, 0 6px 18px rgb(0 0 0 / 0.55);
+  --shadow-lg: 0 0 0 1px #9397ab, 0 16px 40px rgb(0 0 0 / 0.65);
+
+  --animate-rise: rise 240ms ease both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@layer base {
+  body {
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-heading);
+    font-weight: 500; /* Nocturne rule: never exceed 500 on a heading */
+  }
+  :focus {
+    outline: none;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+  ::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-neutral-800);
+    border-radius: var(--radius-md);
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* — buttons — Nocturne rule: primary is an accent OUTLINE on transparent, never a fill. — */
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    font-family: var(--font-heading);
+    font-weight: 500;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3.6); /* space-2 vertical, space-3*1.2 horizontal */
+  }
+  .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  }
+  .btn-primary:active:not(:disabled) {
+    background: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  }
+  .btn-secondary {
+    color: var(--color-fg);
+    border-color: var(--color-divider);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-fg) 7%, transparent);
+  }
+  .btn-secondary:active:not(:disabled) {
+    background: color-mix(in srgb, var(--color-fg) 14%, transparent);
+  }
+  .btn-ghost {
+    color: var(--color-accent);
+    padding-inline: var(--spacing); /* space-1 */
+  }
+  .btn-ghost:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+  }
+  .btn-ghost:active:not(:disabled) {
+    background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+  }
+
+  /* — cards — */
+  .card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0; /* prevents long paragraph text from forcing the card past its grid track */
+    gap: calc(var(--spacing) * 2);
+    padding: calc(var(--spacing) * 6);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+  }
+
+  /* — tags — */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    padding: 3px 10px;
+    border-radius: calc(var(--radius-md) * 0.75);
+  }
+  .tag-outline {
+    border: 1px solid var(--color-accent);
+    color: var(--color-accent);
+  }
+  .tag-neutral {
+    background: var(--color-neutral-800);
+    color: var(--color-neutral-100);
+  }
+}
