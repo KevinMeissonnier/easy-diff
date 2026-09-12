@@ -23,3 +23,17 @@ export function copyTemplate(
   fs.copyFileSync(source, destination);
   return { path: destination, status: 'created' };
 }
+
+/** Writes generated (non-template) JSON content to an absolute destination. */
+export function writeConfigFile(
+  destination: string,
+  content: unknown,
+  force: boolean
+): ScaffoldResult {
+  if (fs.existsSync(destination) && !force) {
+    return { path: destination, status: 'skipped' };
+  }
+  fs.mkdirSync(path.dirname(destination), { recursive: true });
+  fs.writeFileSync(destination, JSON.stringify(content, null, 2) + '\n');
+  return { path: destination, status: 'created' };
+}

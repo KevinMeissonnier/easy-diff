@@ -16,8 +16,14 @@ Scaffolded by `easy-diff init`. These files back the `/easy-diff-report` command
   to end, and blocks with a specific error if something required is missing or malformed
   — another independent layer alongside `--json-schema` and the zod validation `easy-diff
   generate` does once the process exits.
+- `hooks/validate-language.cjs` — another `Stop` hook. Checks that the report's prose was
+  actually written in the language set in `config.json` (a stopword-frequency heuristic,
+  not exact) and blocks asking for a rewrite if it reads as the wrong one.
 - `analysis.schema.json` — the JSON Schema the analysis output is validated against
   (via `claude --json-schema`).
+- `config.json` — report settings. Currently just `language` (`"en"` or `"fr"`, defaults
+  to `"en"`), set at `easy-diff init [language]` time. Edit it by hand and re-run
+  `easy-diff generate` to change it later.
 
 Safe to commit — nothing here is generated output. Generated reports live in the
 gitignored `easy-diff/` folder at the repo root instead.

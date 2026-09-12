@@ -11,15 +11,17 @@ travail : d'abord le **pourquoi** (intention, contexte, résumé), puis le **com
 ## Installation dans un projet
 
 ```bash
-npx easy-diff init
+npx easy-diff init          # rapport en anglais (défaut)
+npx easy-diff init fr       # rapport en français
 ```
 
 Cela scaffolde, dans le repo courant :
 
 - `.claude/commands/easy-diff-report.md` — la commande Claude Code qui produit l'analyse.
-- `.claude/easy-diff/` — settings et hook de garde **isolés**, utilisés uniquement par
-  `easy-diff generate` (jamais injectés dans vos sessions Claude Code interactives normales).
-  Voir `.claude/easy-diff/README.md` une fois généré.
+- `.claude/easy-diff/` — settings, hooks de garde et config **isolés**, utilisés uniquement
+  par `easy-diff generate` (jamais injectés dans vos sessions Claude Code interactives
+  normales). `config.json` y stocke la langue du rapport. Voir `.claude/easy-diff/README.md`
+  une fois généré.
 - `.gitignore` — ajoute `easy-diff/`, le dossier des rapports générés (jamais commité).
 
 ## Générer un rapport

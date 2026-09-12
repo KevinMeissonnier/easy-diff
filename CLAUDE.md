@@ -111,6 +111,12 @@ d'un diff brut à reverse-engineer. Voir `README.md` pour le concept et l'archit
   `Stop` qui vérifie la forme du JSON produit avant même que le tour du modèle ne se termine, et
   bloque (avec le détail de ce qui cloche) plutôt que de laisser `generate` échouer après coup.
   Vanilla JS sans dépendance, comme `guard.cjs` — il tourne via `node` nu dans le repo cible.
+- **La langue du rapport est un réglage repo (`.claude/easy-diff/config.json`), pas un flag de
+  `generate`.** `easy-diff init [en|fr]` l'écrit (défaut `en`) ; `templates/commands/
+  easy-diff-report.md` demande au modèle de le lire et d'écrire tous les champs de prose dans
+  cette langue. `templates/hooks/validate-language.cjs` est un second hook `Stop`, indépendant de
+  `validate-analysis.cjs`, qui vérifie heuristiquement (fréquence de mots-outils FR/EN, pas de
+  détection exacte) que le modèle s'est exécuté, et bloque avec demande de réécriture sinon.
 - **Chemins et bundling** : pas de bundler (tsup/esbuild) pour l'instant — build via `tsc` brut qui
   préserve l'arborescence `src/` → `dist/`, dont dépend `src/lib/paths.ts` (calcul de
   `PACKAGE_ROOT` relatif à sa propre position sur disque). Introduire un bundler nécessiterait de

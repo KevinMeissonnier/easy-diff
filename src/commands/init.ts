@@ -1,17 +1,20 @@
 import path from 'node:path';
 import { repoRoot } from '../lib/git.js';
 import { targetPaths, OUTPUT_DIR } from '../lib/paths.js';
-import { copyTemplate } from '../lib/scaffold.js';
+import { copyTemplate, writeConfigFile } from '../lib/scaffold.js';
 import { ensureGitignoreEntry } from '../lib/gitignore.js';
+import { resolveLanguage, buildConfig } from '../lib/config.js';
 
 export interface InitOptions {
   force?: boolean;
+  language?: string;
 }
 
 export function init(options: InitOptions = {}): void {
   const root = repoRoot();
   const paths = targetPaths(root);
   const force = Boolean(options.force);
+  const language = resolveLanguage(options.language);
 
   const results = [
     copyTemplate('commands/easy-diff-report.md', paths.commandFile, force),
@@ -19,7 +22,9 @@ export function init(options: InitOptions = {}): void {
     copyTemplate('claude-settings.json', paths.settingsFile, force),
     copyTemplate('hooks/guard.cjs', paths.hookFile, force),
     copyTemplate('hooks/validate-analysis.cjs', paths.validateHookFile, force),
+    copyTemplate('hooks/validate-language.cjs', paths.validateLanguageHookFile, force),
     copyTemplate('analysis.schema.json', paths.schemaFile, force),
+    writeConfigFile(paths.configFile, buildConfig(language), force),
   ];
 
   for (const result of results) {
