@@ -18,6 +18,7 @@ export function init(options: InitOptions = {}): void {
     copyTemplate('config-readme.md', paths.configReadme, force),
     copyTemplate('claude-settings.json', paths.settingsFile, force),
     copyTemplate('hooks/guard.cjs', paths.hookFile, force),
+    copyTemplate('hooks/validate-analysis.cjs', paths.validateHookFile, force),
     copyTemplate('analysis.schema.json', paths.schemaFile, force),
   ];
 

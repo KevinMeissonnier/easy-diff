@@ -106,6 +106,11 @@ d'un diff brut à reverse-engineer. Voir `README.md` pour le concept et l'archit
   flags `--allowedTools`/`--disallowedTools`/`--permission-mode plan` dans `claude-runner.ts` sont
   la première ligne. Le hook doit rester fail-closed (deny par défaut) sur tout ce qu'il ne
   reconnaît pas explicitement.
+- **`templates/hooks/validate-analysis.cjs`** est une couche supplémentaire, indépendante du
+  `--json-schema` passé à `claude` et de la validation zod dans `src/lib/schema.ts` : un hook
+  `Stop` qui vérifie la forme du JSON produit avant même que le tour du modèle ne se termine, et
+  bloque (avec le détail de ce qui cloche) plutôt que de laisser `generate` échouer après coup.
+  Vanilla JS sans dépendance, comme `guard.cjs` — il tourne via `node` nu dans le repo cible.
 - **Chemins et bundling** : pas de bundler (tsup/esbuild) pour l'instant — build via `tsc` brut qui
   préserve l'arborescence `src/` → `dist/`, dont dépend `src/lib/paths.ts` (calcul de
   `PACKAGE_ROOT` relatif à sa propre position sur disque). Introduire un bundler nécessiterait de

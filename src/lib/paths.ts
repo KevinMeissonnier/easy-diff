@@ -22,6 +22,7 @@ export interface TargetPaths {
   configReadme: string;
   settingsFile: string;
   hookFile: string;
+  validateHookFile: string;
   schemaFile: string;
   gitignoreFile: string;
 }
@@ -36,6 +37,7 @@ export function targetPaths(repoRoot: string): TargetPaths {
     configReadme: path.join(repoRoot, CONFIG_DIR, 'README.md'),
     settingsFile: path.join(repoRoot, CONFIG_DIR, 'settings.json'),
     hookFile: path.join(repoRoot, CONFIG_DIR, 'hooks', 'guard.cjs'),
+    validateHookFile: path.join(repoRoot, CONFIG_DIR, 'hooks', 'validate-analysis.cjs'),
     schemaFile: path.join(repoRoot, CONFIG_DIR, 'analysis.schema.json'),
     gitignoreFile: path.join(repoRoot, '.gitignore'),
   };

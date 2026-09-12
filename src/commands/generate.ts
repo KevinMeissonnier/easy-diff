@@ -18,6 +18,7 @@ export async function generate(options: GenerateOptions = {}): Promise<void> {
     ['command', paths.commandFile],
     ['settings', paths.settingsFile],
     ['hook', paths.hookFile],
+    ['validate-hook', paths.validateHookFile],
     ['schema', paths.schemaFile],
   ];
   for (const [label, file] of requiredFiles) {
