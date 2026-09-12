@@ -11,6 +11,11 @@ Scaffolded by `easy-diff init`. These files back the `/easy-diff-report` command
   file writes and restricts `Bash` to a handful of read-only git commands, as
   defense-in-depth alongside the `--allowedTools`/`--disallowedTools` flags
   `easy-diff generate` also passes.
+- `hooks/validate-analysis.cjs` — the `Stop` hook referenced by `settings.json`. Checks
+  the model's final JSON against the required analysis shape before its turn is allowed
+  to end, and blocks with a specific error if something required is missing or malformed
+  — another independent layer alongside `--json-schema` and the zod validation `easy-diff
+  generate` does once the process exits.
 - `analysis.schema.json` — the JSON Schema the analysis output is validated against
   (via `claude --json-schema`).
 

@@ -18,7 +18,13 @@ test('init scaffolds the command, guard config and .gitignore entry', async (t) 
   init();
   const paths = targetPaths(repo);
 
-  for (const file of [paths.commandFile, paths.settingsFile, paths.hookFile, paths.schemaFile]) {
+  for (const file of [
+    paths.commandFile,
+    paths.settingsFile,
+    paths.hookFile,
+    paths.validateHookFile,
+    paths.schemaFile,
+  ]) {
     assert.ok(fs.existsSync(file), `expected ${file} to exist`);
   }
   assert.match(fs.readFileSync(paths.gitignoreFile, 'utf8'), /^\/easy-diff\/$/m);
