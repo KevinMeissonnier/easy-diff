@@ -94,6 +94,18 @@ d'un diff brut à reverse-engineer. Voir `README.md` pour le concept et l'archit
 
 ## Décisions de conception à ne pas re-discuter sans raison
 
+- **`detectBaseBranch` (`src/lib/git.ts`) devine la base par proximité de merge-base, pas par
+  nom.** Git ne garde aucune trace de "quelle branche a servi de départ" ; le seul signal fiable
+  est `@{upstream}` s'il est configuré, sinon le nombre de commits uniques à HEAD depuis le
+  merge-base avec chaque branche connue (`origin/*`, ou les branches locales si pas de remote) —
+  la plus proche gagne. Nécessaire pour les repos qui ne suivent pas la convention
+  `main`/`master`/`develop` (ex. branches de maintenance versionnées type Symfony `6.4`, `7.1`).
+  L'ancien fallback par nom reste en dernier recours. En cas d'égalité stricte entre plusieurs
+  candidats, `detectBaseBranch` renvoie `{ status: 'ambiguous', candidates }` plutôt que de
+  deviner en silence ; `generate.ts` propose un choix interactif (`src/lib/prompt.ts`, `readline`
+  sans dépendance) si stdin est un TTY, sinon échoue en listant les candidats — jamais de prompt
+  bloquant en CI.
+
 - **Le LLM ne produit jamais de HTML ni de diff recopié.** Il ne sort qu'un JSON structuré
   (overview + steps, validé par `templates/analysis.schema.json`). Le rendu et les hunks affichés
   sont calculés déterministiquement par notre code (`git diff` direct), pas par le modèle — évite
