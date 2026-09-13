@@ -107,9 +107,7 @@ function collectJsonCandidates(raw: string): unknown[] {
       if (typeof value === 'string') {
         try {
           consider(JSON.parse(value));
-        } catch {
-          // Not JSON — ignore this candidate.
-        }
+        } catch {}
       } else {
         consider(value);
       }

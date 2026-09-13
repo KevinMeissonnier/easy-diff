@@ -8,7 +8,6 @@ import { extractAnalysis } from '../lib/schema.js';
 import { readReportLanguage } from '../lib/config.js';
 import { buildReportData, writeReport } from '../render/report.js';
 
-/** Resolves the base branch, prompting interactively if multiple candidates tie. */
 async function resolveBase(root: string): Promise<string> {
   const detection = detectBaseBranch(root);
   if (detection.status === 'found') return detection.base;

@@ -3,7 +3,6 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
-/** Creates a throwaway git repo under the OS tmp dir and returns its path. */
 export function makeTmpRepo(): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'easy-diff-test-'));
   git(dir, ['init', '-q', '-b', 'main']);

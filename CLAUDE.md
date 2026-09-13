@@ -60,6 +60,26 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## Code comments
+
+Do not narrate the code.
+
+Prefer self-explanatory code, clear naming, and small functions over comments.
+
+Only add a comment when it explains information that cannot reasonably be inferred from the
+code itself, such as:
+- why a non-obvious decision was made
+- a business constraint
+- an external system limitation
+- a workaround
+- a surprising invariant or edge case
+
+Never add comments that describe what the following line or block does.
+When in doubt, do not add a comment.
+
+**IMPORTANT:** Comments that merely restate the code are considered a code quality defect and
+must not be introduced.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
@@ -70,104 +90,103 @@ Source: [andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-s
 
 # easy-diff
 
-CLI qui transforme un diff git en review narrée (vue d'ensemble + étapes commentées), au lieu
-d'un diff brut à reverse-engineer. Voir `README.md` pour le concept et l'architecture complète.
+CLI that turns a git diff into a narrated review (overview + commented steps), instead of a raw
+diff to reverse-engineer.
 
 ## Structure
 
-- `src/cli.ts` — entrée CLI (commander), sous-commandes `init` et `generate`.
-- `src/commands/init.ts` — scaffolde `.claude/commands/`, `.claude/easy-diff/` (settings isolés +
-  hook + schéma) et l'entrée `.gitignore` dans le repo cible. Pur I/O fichiers, pas de réseau.
-- `src/commands/generate.ts` — orchestre l'analyse : détecte la base, invoque Claude Code headless,
-  valide la sortie, écrit `easy-diff/data/analysis.json`, déclenche le rendu HTML.
-- `src/lib/claude-runner.ts` — invocation `claude -p` headless. `ALLOWED_TOOLS`/`DISALLOWED_TOOLS`
-  ici doivent rester synchronisés avec `templates/commands/easy-diff-report.md` (`allowed-tools`
-  frontmatter) — l'un pré-approuve sans prompt, l'autre est la vraie barrière.
-- `src/lib/schema.ts` — schéma zod de l'analyse + `extractAnalysis`, qui essaie plusieurs points
-  d'extraction dans la sortie `--output-format json`/`--json-schema` de Claude Code (l'enveloppe
-  et son champ `structured_output` sont confirmés contre une vraie invocation, voir
+- `src/cli.ts` — CLI entry point (commander), `init` and `generate` subcommands.
+- `src/commands/init.ts` — scaffolds `.claude/commands/`, `.claude/easy-diff/` (isolated settings
+  + hook + schema) and the `.gitignore` entry in the target repo. Pure file I/O, no network.
+- `src/commands/generate.ts` — orchestrates the analysis: detects the base, invokes headless
+  Claude Code, validates the output, writes `easy-diff/data/analysis.json`, triggers the HTML
+  render.
+- `src/lib/claude-runner.ts` — headless `claude -p` invocation. `ALLOWED_TOOLS`/`DISALLOWED_TOOLS`
+  here must stay in sync with `templates/commands/easy-diff-report.md` (`allowed-tools`
+  frontmatter) — one pre-approves without prompting, the other is the real barrier.
+- `src/lib/schema.ts` — zod schema for the analysis + `extractAnalysis`, which tries several
+  extraction points in Claude Code's `--output-format json`/`--json-schema` output (the envelope
+  and its `structured_output` field are confirmed against a real invocation, see
   `test/fixtures/`).
-- `src/render/report.ts` — construit les données du rapport (le JSON du LLM + les diffs exacts par
-  fichier, recalculés via `git diff`, jamais fournis par le LLM) et écrit le HTML/CSS/JS statique.
-- `templates/` — tout ce qui est scaffoldé tel quel dans un repo cible par `init`, plus le viewer
-  HTML/CSS/JS copié par `render/report.ts`. Ce ne sont pas des sources TypeScript.
+- `src/render/report.ts` — builds the report data (the LLM's JSON + the exact per-file diffs,
+  recomputed via `git diff`, never provided by the LLM) and writes the static HTML/CSS/JS.
+- `templates/` — everything scaffolded as-is into a target repo by `init`, plus the HTML/CSS/JS
+  viewer copied by `render/report.ts`. These are not TypeScript sources.
 
-## Décisions de conception à ne pas re-discuter sans raison
+## Design decisions not to re-discuss without reason
 
-- **`detectBaseBranch` (`src/lib/git.ts`) devine la base par proximité de merge-base, pas par
-  nom.** Git ne garde aucune trace de "quelle branche a servi de départ" ; le seul signal fiable
-  est `@{upstream}` s'il est configuré, sinon le nombre de commits uniques à HEAD depuis le
-  merge-base avec chaque branche connue (`origin/*`, ou les branches locales si pas de remote) —
-  la plus proche gagne. Nécessaire pour les repos qui ne suivent pas la convention
-  `main`/`master`/`develop` (ex. branches de maintenance versionnées type Symfony `6.4`, `7.1`).
-  L'ancien fallback par nom reste en dernier recours. En cas d'égalité stricte entre plusieurs
-  candidats, `detectBaseBranch` renvoie `{ status: 'ambiguous', candidates }` plutôt que de
-  deviner en silence ; `generate.ts` propose un choix interactif (`src/lib/prompt.ts`, `readline`
-  sans dépendance) si stdin est un TTY, sinon échoue en listant les candidats — jamais de prompt
-  bloquant en CI.
+- **`detectBaseBranch` (`src/lib/git.ts`) guesses the base by merge-base proximity, not by
+  name.** Git keeps no record of "which branch this started from"; the only reliable signal is
+  `@{upstream}` if configured, otherwise the number of commits unique to HEAD since the
+  merge-base with each known branch (`origin/*`, or local branches if there's no remote) — the
+  closest one wins. Needed for repos that don't follow the `main`/`master`/`develop` convention
+  (e.g. versioned maintenance branches like Symfony's `6.4`, `7.1`). The old name-based fallback
+  remains a last resort. On a strict tie between several candidates, `detectBaseBranch` returns
+  `{ status: 'ambiguous', candidates }` instead of guessing silently; `generate.ts` offers an
+  interactive choice (`src/lib/prompt.ts`, dependency-free `readline`) if stdin is a TTY,
+  otherwise it fails listing the candidates — never a blocking prompt in CI.
 
-- **Le LLM ne produit jamais de HTML ni de diff recopié.** Il ne sort qu'un JSON structuré
-  (overview + steps, validé par `templates/analysis.schema.json`). Le rendu et les hunks affichés
-  sont calculés déterministiquement par notre code (`git diff` direct), pas par le modèle — évite
-  les incohérences de mise en page et les hallucinations de diff.
-- **`.claude/easy-diff/settings.json` n'est jamais la config par défaut du repo.** Il n'est chargé
-  que via `claude --settings <ce fichier>` lors d'un `easy-diff generate`. Ne jamais le fusionner
-  dans `.claude/settings.json` du repo cible — ça casserait les sessions Claude Code interactives
-  normales (Write/Edit/Bash y seraient bloqués en permanence).
-- **`templates/hooks/guard.cjs` est de la défense en profondeur**, pas la seule barrière — les
-  flags `--allowedTools`/`--disallowedTools`/`--permission-mode plan` dans `claude-runner.ts` sont
-  la première ligne. Le hook doit rester fail-closed (deny par défaut) sur tout ce qu'il ne
-  reconnaît pas explicitement.
-- **`templates/hooks/validate-analysis.cjs`** est une couche supplémentaire, indépendante du
-  `--json-schema` passé à `claude` et de la validation zod dans `src/lib/schema.ts` : un hook
-  `Stop` qui vérifie la forme du JSON produit avant même que le tour du modèle ne se termine, et
-  bloque (avec le détail de ce qui cloche) plutôt que de laisser `generate` échouer après coup.
-  Vanilla JS sans dépendance, comme `guard.cjs` — il tourne via `node` nu dans le repo cible.
-- **La langue du rapport est un réglage repo (`.claude/easy-diff/config.json`), pas un flag de
-  `generate`.** `easy-diff init [en|fr]` l'écrit (défaut `en`) ; `templates/commands/
-  easy-diff-report.md` demande au modèle de le lire et d'écrire tous les champs de prose dans
-  cette langue. `templates/hooks/validate-language.cjs` est un second hook `Stop`, indépendant de
-  `validate-analysis.cjs`, qui vérifie heuristiquement (fréquence de mots-outils FR/EN, pas de
-  détection exacte) que le modèle s'est exécuté, et bloque avec demande de réécriture sinon.
-- **`config.json` a deux champs langue distincts, à ne pas confondre.** `language` (ci-dessus) est
-  la langue dans laquelle le LLM écrit la prose de l'analyse — c'est un réglage du prompt, vérifié
-  par `validate-language.cjs`. `reportLanguage` (défaut `en`) est la langue des libellés statiques
-  du *viewer* HTML (boutons, titres — `templates/report/i18n.js`, chargé par `index.html` avant
-  `app.js`) : ce n'est pas une sortie du modèle, `generate.ts` la lit directement via
-  `readReportLanguage` (`src/lib/config.ts`) et l'embarque dans `ReportData.reportLanguage` ; rien
-  ne vérifie sa conformité puisqu'aucun LLM n'intervient. Pas de flag CLI pour l'instant — édition
-  à la main dans `config.json`.
-- **Chemins et bundling** : pas de bundler (tsup/esbuild) pour l'instant — build via `tsc` brut qui
-  préserve l'arborescence `src/` → `dist/`, dont dépend `src/lib/paths.ts` (calcul de
-  `PACKAGE_ROOT` relatif à sa propre position sur disque). Introduire un bundler nécessiterait de
-  revoir ce calcul (voir commentaire dans `paths.ts`).
+- **The LLM never produces HTML or a copied diff.** It only outputs a structured JSON (overview +
+  steps, validated by `templates/analysis.schema.json`). The rendering and the displayed hunks
+  are computed deterministically by our code (direct `git diff`), not by the model — this avoids
+  layout inconsistencies and diff hallucinations.
+- **`.claude/easy-diff/settings.json` is never the repo's default config.** It's only loaded via
+  `claude --settings <this file>` during an `easy-diff generate`. Never merge it into the target
+  repo's `.claude/settings.json` — that would permanently break normal interactive Claude Code
+  sessions (Write/Edit/Bash would be blocked there).
+- **`templates/hooks/guard.cjs` is defense in depth**, not the only barrier — the
+  `--allowedTools`/`--disallowedTools`/`--permission-mode plan` flags in `claude-runner.ts` are
+  the first line. The hook must stay fail-closed (deny by default) on anything it doesn't
+  explicitly recognize.
+- **`templates/hooks/validate-analysis.cjs`** is an additional layer, independent of the
+  `--json-schema` passed to `claude` and of the zod validation in `src/lib/schema.ts`: a `Stop`
+  hook that checks the shape of the produced JSON before the model's turn even ends, and blocks
+  (with details of what's wrong) instead of letting `generate` fail afterward. Vanilla JS with no
+  dependency, like `guard.cjs` — it runs via plain `node` in the target repo.
+- **The report language is a repo setting (`.claude/easy-diff/config.json`), not a `generate`
+  flag.** `easy-diff init [en|fr]` writes it (default `en`); `templates/commands/
+  easy-diff-report.md` asks the model to read it and write all prose fields in that language.
+  `templates/hooks/validate-language.cjs` is a second `Stop` hook, independent of
+  `validate-analysis.cjs`, which heuristically checks (FR/EN stopword frequency, not exact
+  detection) that the model complied, and blocks with a rewrite request otherwise.
+- **`config.json` has two distinct language fields, not to be confused.** `language` (above) is
+  the language the LLM writes the analysis prose in — it's a prompt setting, checked by
+  `validate-language.cjs`. `reportLanguage` (default `en`) is the language of the HTML *viewer*'s
+  static labels (buttons, titles — `templates/report/i18n.js`, loaded by `index.html` before
+  `app.js`): it's not model output, `generate.ts` reads it directly via `readReportLanguage`
+  (`src/lib/config.ts`) and embeds it in `ReportData.reportLanguage`; nothing checks its
+  compliance since no LLM is involved. No CLI flag for now — edit `config.json` by hand.
+- **Paths and bundling**: no bundler (tsup/esbuild) for now — build via plain `tsc`, which
+  preserves the `src/` → `dist/` tree structure, on which `src/lib/paths.ts` depends (computing
+  `PACKAGE_ROOT` relative to its own location on disk). Introducing a bundler would require
+  revisiting this computation (see the comment in `paths.ts`).
 
-## Commandes
+## Commands
 
 ```bash
 npm install
 npm run typecheck   # tsc --noEmit
 npm run build        # tsc + chmod +x dist/cli.js
-npm run dev -- init   # exécute depuis les sources via tsx, sans build
+npm run dev -- init   # runs from source via tsx, no build needed
 ```
 
-## Format d'analyse riche (MR metadata, hunks ciblés, confidence, watchpoints)
+## Rich analysis format (MR metadata, targeted hunks, confidence, watchpoints)
 
-`templates/analysis.example.json` est désormais le format réel, pas juste une cible : métadonnées
-de MR, `hunks` avec numéros de ligne exacts et `focus_lines`, `confidence`, `watchpoints`, `kind`
-par étape, `change_type` par fichier. Le schéma JSON, le prompt, `src/lib/schema.ts` (zod) et le
-rendu (`src/render/report.ts`, viewer `templates/report/`) sont alignés sur cette forme.
+`templates/analysis.example.json` is now the real format, not just a target: MR metadata, `hunks`
+with exact line numbers and `focus_lines`, `confidence`, `watchpoints`, per-step `kind`, per-file
+`change_type`. The JSON schema, the prompt, `src/lib/schema.ts` (zod) and the rendering
+(`src/render/report.ts`, viewer `templates/report/`) are aligned with this shape.
 
-Le modèle ne fournit jamais le contenu d'un hunk, seulement son `index` (position dans l'ordre où
-`git diff` les produit) et des numéros de ligne à titre indicatif/pour le labelling. `report.ts`
-reparse lui-même `git diff` pour ce fichier et pioche le hunk réel à cet index — le contenu affiché
-vient toujours de notre propre parsing, jamais du JSON du modèle. Si tous les index d'un fichier
-sont invalides, tous ses hunks réels sont affichés plutôt que rien.
+The model never provides a hunk's content, only its `index` (position in the order `git diff`
+produces them) and line numbers for indicative/labelling purposes only. `report.ts` re-parses
+`git diff` for that file itself and picks the actual hunk at that index — the displayed content
+always comes from our own parsing, never from the model's JSON. If all of a file's indexes are
+invalid, all of its actual hunks are shown instead of none.
 
-## Validé en conditions réelles
+## Validated against real conditions
 
-`generate` a été testé de bout en bout avec `claude -p --json-schema` contre un repo jetable (voir
-`test/fixtures/claude-envelope.*.json`, capturés depuis une vraie invocation). L'enveloppe expose
-la valeur structurée sous `structured_output`. Si le format venait à changer avec une future
-version de Claude Code, `extractAnalysis` inclut la sortie brute dans son message d'erreur —
-inspecter et ajuster `collectJsonCandidates` dans `src/lib/schema.ts` en conséquence.
+`generate` was tested end-to-end with `claude -p --json-schema` against a throwaway repo (see
+`test/fixtures/claude-envelope.*.json`, captured from a real invocation). The envelope exposes the
+structured value under `structured_output`. If the format changes in a future Claude Code
+version, `extractAnalysis` includes the raw output in its error message — inspect and adjust
+`collectJsonCandidates` in `src/lib/schema.ts` accordingly.

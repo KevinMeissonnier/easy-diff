@@ -2,7 +2,6 @@ import fs from 'node:fs';
 
 export type GitignoreStatus = 'added' | 'present';
 
-/** Idempotently ensures `entry` is present as its own line in the gitignore file. */
 export function ensureGitignoreEntry(gitignorePath: string, entry: string): GitignoreStatus {
   const existing = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf8') : '';
   const alreadyPresent = existing.split('\n').some((line) => line.trim() === entry);

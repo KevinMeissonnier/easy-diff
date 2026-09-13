@@ -35,7 +35,6 @@ function refShortNames(pattern: string, cwd: string): string[] {
   return out ? out.split('\n').filter(Boolean) : [];
 }
 
-/** Remote branches if the repo has an `origin`, otherwise local branches — whichever exists. */
 function candidateBaseRefs(cwd: string): string[] {
   // refs/remotes/origin/HEAD is a symbolic ref; git's `refname:short` quirkily renders it as
   // just "origin" (not "origin/HEAD"), so both forms need excluding.
@@ -129,13 +128,11 @@ export function mergeBase(base: string, cwd: string): string {
   return run(['merge-base', base, 'HEAD'], cwd);
 }
 
-/** Commits reachable from HEAD but not from the merge-base — i.e. added on this branch. */
 export function commitCount(base: string, cwd: string): number {
   const out = run(['rev-list', '--count', `${mergeBase(base, cwd)}..HEAD`], cwd);
   return Number(out) || 0;
 }
 
-/** Per-file insertion/deletion counts from `git diff --numstat`, keyed by path. */
 export function diffNumstat(base: string, cwd: string): Map<string, { add: number; del: number }> {
   const out = run(['diff', '--numstat', `${base}...HEAD`], cwd);
   const stats = new Map<string, { add: number; del: number }>();

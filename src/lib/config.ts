@@ -20,7 +20,6 @@ export interface EasyDiffConfig {
   reportLanguage: Language;
 }
 
-/** Validates and normalizes a user-supplied language; falls back to English if omitted. */
 export function resolveLanguage(input: string | undefined): Language {
   if (input === undefined) return DEFAULT_LANGUAGE;
   const normalized = input.toLowerCase();
@@ -51,8 +50,6 @@ export function readReportLanguage(configFile: string): Language {
     ) {
       return (raw as { reportLanguage: Language }).reportLanguage;
     }
-  } catch {
-    // Missing/unreadable/invalid config: fall back to the default language.
-  }
+  } catch {}
   return DEFAULT_LANGUAGE;
 }
