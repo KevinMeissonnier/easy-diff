@@ -9,7 +9,6 @@ export interface ScaffoldResult {
   status: ScaffoldStatus;
 }
 
-/** Copies a file from templates/<relativeTemplatePath> to an absolute destination. */
 export function copyTemplate(
   relativeTemplatePath: string,
   destination: string,
@@ -24,7 +23,6 @@ export function copyTemplate(
   return { path: destination, status: 'created' };
 }
 
-/** Writes generated (non-template) JSON content to an absolute destination. */
 export function writeConfigFile(
   destination: string,
   content: unknown,

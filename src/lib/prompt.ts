@@ -1,6 +1,5 @@
 import readline from 'node:readline';
 
-/** Prompts the user to pick one of `options` (Enter accepts `defaultIndex`). */
 export async function promptChoice(
   message: string,
   options: string[],
