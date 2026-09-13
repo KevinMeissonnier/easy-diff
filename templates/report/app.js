@@ -3,17 +3,13 @@
   const root = document.getElementById('app');
 
   if (!data) {
-    root.innerHTML = '<p class="p-10 text-diff-del-sign">Aucune donnée de rapport trouvée.</p>';
+    root.innerHTML = '<p class="p-10 text-diff-del-sign">No report data found.</p>';
     return;
   }
 
-  const KIND_LABELS = {
-    foundation: 'Fondation',
-    core: 'Cœur logique',
-    wiring: 'Câblage',
-    delicate: 'Sensible',
-    tests: 'Tests',
-  };
+  const t = window.EASY_DIFF_I18N[data.reportLanguage] || window.EASY_DIFF_I18N.en;
+  document.documentElement.lang = data.reportLanguage === 'fr' ? 'fr' : 'en';
+  document.title = t.title;
 
   // One-off multi-track grid layouts, kept as plain CSS to avoid Tailwind's arbitrary-value
   // bracket escaping for values that mix commas (minmax(...)) and spaces.
@@ -247,12 +243,12 @@
         <span class="text-[13px] text-neutral-400 truncate min-w-0">${escapeHtml(mr.title)}</span>
         <div class="flex-1"></div>
         <div class="flex items-center gap-3 text-[12px] text-neutral-500">
-          <span>${cov.seenPaths} / ${cov.totalPaths} fichier${cov.totalPaths > 1 ? 's' : ''} vus</span>
+          <span>${t.filesSeen(cov.seenPaths, cov.totalPaths)}</span>
           <div class="w-[84px] h-[3px] rounded-full bg-neutral-900 overflow-hidden">
             <div class="h-full bg-accent transition-[width] duration-300 ease-out" style="width:${cov.pct}%"></div>
           </div>
         </div>
-        <button class="btn btn-ghost text-[12.5px]" data-action="open-raw">Diff brut</button>
+        <button class="btn btn-ghost text-[12.5px]" data-action="open-raw">${t.rawDiff}</button>
       </header>`;
   }
 
@@ -266,7 +262,7 @@
       .map((step, si) => {
         const status = stepStatus(si);
         const marker = status === 'done' ? '✓' : String(si + 1).padStart(2, '0');
-        const stateLabel = status === 'done' ? 'vu' : status === 'progress' ? 'en cours' : 'à lire';
+        const stateLabel = status === 'done' ? t.status.done : status === 'progress' ? t.status.progress : t.status.todo;
         const stateColor =
           status === 'done' ? 'text-neutral-500' : status === 'progress' ? 'text-accent-400' : 'text-neutral-600';
         const n = step.files.length;
@@ -277,7 +273,7 @@
               <span class="block text-neutral-100 text-[15.5px]">${escapeHtml(step.title)}</span>
               <span class="block text-neutral-500 text-[13px] mt-0.5 text-pretty">${escapeHtml(step.role)}</span>
             </span>
-            <span class="font-mono text-[12.5px] text-neutral-600">${n} fichier${n > 1 ? 's' : ''}</span>
+            <span class="font-mono text-[12.5px] text-neutral-600">${t.filesCount(n)}</span>
             <span class="text-[12px] text-right ${stateColor}">${stateLabel}</span>
           </li>`;
       })
@@ -291,26 +287,26 @@
 
           <div class="grid gap-6 mb-16" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
             <div class="card">
-              <div class="text-[11px] tracking-[0.12em] uppercase text-neutral-600 mb-4">Ce que ça fait</div>
+              <div class="text-[11px] tracking-[0.12em] uppercase text-neutral-600 mb-4">${t.whatItDoes}</div>
               <p class="m-0 text-neutral-200 text-[14.5px] text-pretty">${escapeHtml(o.what)}</p>
             </div>
             <div class="card border-l-2 border-accent">
-              <div class="text-[11px] tracking-[0.12em] uppercase text-accent-400 mb-4">Pourquoi</div>
+              <div class="text-[11px] tracking-[0.12em] uppercase text-accent-400 mb-4">${t.why}</div>
               <p class="m-0 text-neutral-200 text-[14.5px] text-pretty">${escapeHtml(o.why)}</p>
             </div>
             <div class="card">
-              <div class="text-[11px] tracking-[0.12em] uppercase text-neutral-600 mb-4">Risques</div>
+              <div class="text-[11px] tracking-[0.12em] uppercase text-neutral-600 mb-4">${t.risks}</div>
               <p class="m-0 text-neutral-200 text-[14.5px] text-pretty">${escapeHtml(o.risks)}</p>
             </div>
           </div>
 
-          <h2 class="text-[17px] font-medium tracking-[0.1em] uppercase text-neutral-400 mb-8">Chemin de relecture</h2>
+          <h2 class="text-[17px] font-medium tracking-[0.1em] uppercase text-neutral-400 mb-8">${t.reviewPath}</h2>
           <ol class="list-none m-0 mb-16 p-0 flex flex-col gap-[2px]">${stepsHtml}</ol>
 
           <div class="flex gap-4 items-center flex-wrap">
-            <button class="btn btn-primary text-[14px] px-5 py-3" data-action="start-walk">${anySeen ? 'Reprendre la relecture ▸' : 'Commencer la relecture ▸'}</button>
-            <button class="btn btn-ghost text-[13px]" data-action="open-raw">Ouvrir le diff brut</button>
-            <span class="text-neutral-600 text-[12.5px]">≈ ${o.estimated_reading_minutes} min de lecture guidée</span>
+            <button class="btn btn-primary text-[14px] px-5 py-3" data-action="start-walk">${anySeen ? t.resumeReview : t.startReview}</button>
+            <button class="btn btn-ghost text-[13px]" data-action="open-raw">${t.openRawDiff}</button>
+            <span class="text-neutral-600 text-[12.5px]">${t.readingTime(o.estimated_reading_minutes)}</span>
           </div>
         </div>
       </main>`;
@@ -329,7 +325,7 @@
       .join('');
     return `
       <div class="card">
-        <div class="text-[11px] tracking-[0.12em] uppercase text-neutral-500 mb-3">À vérifier</div>
+        <div class="text-[11px] tracking-[0.12em] uppercase text-neutral-500 mb-3">${t.watchpointsTitle}</div>
         <ul class="m-0 p-0 list-none flex flex-col gap-3">${items}</ul>
       </div>`;
   }
@@ -374,12 +370,11 @@
     const isLastFileOfStep = state.fi === step.files.length - 1;
     const isLastStep = state.si === data.steps.length - 1;
     const primaryLabel = !isLastFileOfStep
-      ? 'Vu, fichier suivant ▸'
+      ? t.seenNextFile
       : !isLastStep
-        ? 'Vu, étape suivante ▸'
-        : 'Vu, terminer ▸';
-    const filesHeading =
-      step.files.length > 1 ? `LES ${step.files.length} FICHIERS DE L'ÉTAPE` : `LE FICHIER DE L'ÉTAPE`;
+        ? t.seenNextStep
+        : t.seenFinish;
+    const filesHeading = t.stepFilesHeading(step.files.length);
 
     const navHtml = data.steps
       .map((s, si) => {
@@ -419,17 +414,17 @@
         <nav class="border-r border-divider py-6 px-4 flex flex-col gap-[2px] overflow-auto">
           <button class="flex items-center gap-3 text-left rounded-md px-4 py-3 text-[13px] text-neutral-400 mb-4 hover:bg-neutral-900 hover:text-accent-200" data-action="go-overview">
             <svg width="15" height="15" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M224,128a8,8,0,0,1-8,8H59.31l58.35,58.34a8,8,0,0,1-11.32,11.32l-72-72a8,8,0,0,1,0-11.32l72-72a8,8,0,0,1,11.32,11.32L59.31,120H216A8,8,0,0,1,224,128Z"></path></svg>
-            <span>Retour</span>
+            <span>${t.back}</span>
           </button>
-          <div class="text-[11px] tracking-[0.1em] uppercase text-neutral-600 px-4 pb-4">Étapes</div>
+          <div class="text-[11px] tracking-[0.1em] uppercase text-neutral-600 px-4 pb-4">${t.steps}</div>
           ${navHtml}
         </nav>
 
         <section class="border-r border-divider py-10 px-8 overflow-auto flex flex-col gap-6 min-w-0">
           <div class="flex flex-col gap-6 flex-1 animate-rise">
             <div class="flex items-center gap-3">
-              <span class="font-mono text-[11.5px] text-accent-400">Étape ${String(state.si + 1).padStart(2, '0')} / ${String(data.steps.length).padStart(2, '0')}</span>
-              <span class="tag tag-outline">${escapeHtml(KIND_LABELS[step.kind] || step.kind)}</span>
+              <span class="font-mono text-[11.5px] text-accent-400">${t.stepCounter(String(state.si + 1).padStart(2, '0'), String(data.steps.length).padStart(2, '0'))}</span>
+              <span class="tag tag-outline">${escapeHtml(t.kind[step.kind] || step.kind)}</span>
             </div>
             <h2 class="text-[24px] font-medium leading-[1.2] tracking-[-0.01em] m-0 text-pretty">${escapeHtml(step.title)}</h2>
             <p class="m-0 text-neutral-300 text-[14.5px] text-pretty">${escapeHtml(step.intro)}</p>
@@ -441,7 +436,7 @@
             <div class="flex-1"></div>
             <div class="flex gap-3 items-center flex-wrap pt-4 border-t border-divider">
               <button class="btn btn-primary text-[13px]" data-action="mark-seen">${primaryLabel}</button>
-              <button class="btn btn-ghost text-[13px]" data-action="prev-step" ${isFirstStep ? 'disabled' : ''}>◂ Étape précédente</button>
+              <button class="btn btn-ghost text-[13px]" data-action="prev-step" ${isFirstStep ? 'disabled' : ''}>${t.prevStep}</button>
             </div>
           </div>
         </section>
@@ -458,7 +453,7 @@
 
           <div class="p-8 flex flex-col gap-6 animate-rise">
             <div class="card border-l-2 border-accent">
-              <div class="text-[11px] tracking-[0.12em] uppercase text-accent-400 mb-3">Pourquoi ce changement</div>
+              <div class="text-[11px] tracking-[0.12em] uppercase text-accent-400 mb-3">${t.whyThisChange}</div>
               <p class="m-0 text-neutral-200 text-[14.5px] text-pretty">${escapeHtml(file.why)}</p>
             </div>
 
@@ -467,11 +462,11 @@
             ${
               file.hunks.length
                 ? file.hunks.map(renderHunk).join('')
-                : '<div class="text-neutral-600 text-[13px]">Aucun hunk disponible pour ce fichier.</div>'
+                : `<div class="text-neutral-600 text-[13px]">${t.noHunkAvailable}</div>`
             }
 
             <div class="flex gap-3 items-center">
-              <button class="btn btn-secondary text-[12.5px]" data-action="mark-seen">Marquer ce fichier comme vu</button>
+              <button class="btn btn-secondary text-[12.5px]" data-action="mark-seen">${t.markFileSeen}</button>
             </div>
           </div>
         </section>
@@ -492,7 +487,7 @@
             <span class="text-[12px] ${fullySeen ? 'text-accent-400' : 'text-neutral-600'}">${fullySeen ? '✓' : '○'}</span>
             <span class="font-mono text-[12.5px] text-neutral-300 truncate">${escapeHtml(g.path)}</span>
             <span class="font-mono text-[11.5px] text-neutral-600 whitespace-nowrap">${churnLabel(file.churn)}</span>
-            <span class="text-[11.5px] text-neutral-600 whitespace-nowrap">étape${g.occurrences.length > 1 ? 's' : ''} ${stepsLabel}</span>
+            <span class="text-[11.5px] text-neutral-600 whitespace-nowrap">${t.stepsLabel(stepsLabel, g.occurrences.length)}</span>
           </div>`;
       })
       .join('');
@@ -501,11 +496,11 @@
       <div class="fixed inset-0 bg-[rgba(10,11,18,0.62)] flex justify-end z-40" data-action="close-raw-veil">
         <div class="w-[min(720px,92vw)] h-full bg-bg border-l border-neutral-800 shadow-lg flex flex-col animate-rise" data-raw-panel>
           <div class="flex items-center gap-4 px-8 py-6 border-b border-divider">
-            <span class="font-heading text-[16px]">Diff brut</span>
-            <span class="text-[12.5px] text-neutral-600">${fileGroups.length} fichier${fileGroups.length > 1 ? 's' : ''}, ordre du dépôt — aucun commentaire</span>
+            <span class="font-heading text-[16px]">${t.rawPanelTitle}</span>
+            <span class="text-[12.5px] text-neutral-600">${t.rawPanelSubtitle(fileGroups.length)}</span>
             <span class="tag tag-outline">${cov.seenPaths} / ${cov.totalPaths}</span>
             <div class="flex-1"></div>
-            <button class="btn btn-ghost text-[12.5px]" data-action="close-raw">Fermer</button>
+            <button class="btn btn-ghost text-[12.5px]" data-action="close-raw">${t.close}</button>
           </div>
           <div class="overflow-auto px-8 pt-4 pb-12">${rows}</div>
         </div>

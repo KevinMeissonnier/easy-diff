@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { Analysis } from '../lib/schema.js';
+import type { Language } from '../lib/config.js';
+import { DEFAULT_LANGUAGE } from '../lib/config.js';
 import { TEMPLATES_DIR } from '../lib/paths.js';
 import { diffForFile, diffNumstat, commitCount } from '../lib/git.js';
 
@@ -57,11 +59,18 @@ export interface ReportData {
   generatedAt: string;
   meta: ReportMeta;
   steps: StepWithHunks[];
+  /** Language of the report viewer's own static UI — independent of `analysis`' prose. */
+  reportLanguage: Language;
 }
 
 const ZERO_CHURN = { add: 0, del: 0 };
 
-export function buildReportData(analysis: Analysis, base: string, cwd: string): ReportData {
+export function buildReportData(
+  analysis: Analysis,
+  base: string,
+  cwd: string,
+  reportLanguage: Language = DEFAULT_LANGUAGE
+): ReportData {
   const numstat = safeNumstat(base, cwd);
   const steps: StepWithHunks[] = analysis.steps.map((step) => ({
     id: step.id,
@@ -94,6 +103,7 @@ export function buildReportData(analysis: Analysis, base: string, cwd: string): 
     generatedAt: new Date().toISOString(),
     meta,
     steps,
+    reportLanguage,
   };
 }
 
@@ -203,6 +213,7 @@ function safeCommitCount(base: string, cwd: string): number {
 export function writeReport(reportDir: string, data: ReportData): void {
   fs.mkdirSync(reportDir, { recursive: true });
 
+  fs.copyFileSync(path.join(TEMPLATES_DIR, 'report', 'i18n.js'), path.join(reportDir, 'i18n.js'));
   fs.copyFileSync(path.join(TEMPLATES_DIR, 'report', 'app.js'), path.join(reportDir, 'app.js'));
   fs.copyFileSync(
     path.join(TEMPLATES_DIR, 'report', 'style.css'),

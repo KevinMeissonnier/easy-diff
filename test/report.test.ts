@@ -48,6 +48,8 @@ test('render pipeline: diff content comes from git, not from the analysis JSON',
   });
 
   const data = buildReportData(analysis, 'main', repo);
+  assert.equal(data.reportLanguage, 'en', 'defaults to English when not passed');
+  assert.equal(buildReportData(analysis, 'main', repo, 'fr').reportLanguage, 'fr');
   const lines = data.steps[0]?.files[0]?.hunks[0]?.lines ?? [];
   assert.ok(
     lines.some((l) => l.type === 'add' && l.text.includes('def bye()')),
@@ -59,6 +61,7 @@ test('render pipeline: diff content comes from git, not from the analysis JSON',
 
   assert.ok(fs.existsSync(path.join(reportDir, 'index.html')));
   assert.ok(fs.existsSync(path.join(reportDir, 'app.js')));
+  assert.ok(fs.existsSync(path.join(reportDir, 'i18n.js')));
   assert.ok(fs.existsSync(path.join(reportDir, 'style.css')));
 
   const html = fs.readFileSync(path.join(reportDir, 'index.html'), 'utf8');

@@ -21,9 +21,14 @@ Scaffolded by `easy-diff init`. These files back the `/easy-diff-report` command
   not exact) and blocks asking for a rewrite if it reads as the wrong one.
 - `analysis.schema.json` — the JSON Schema the analysis output is validated against
   (via `claude --json-schema`).
-- `config.json` — report settings. Currently just `language` (`"en"` or `"fr"`, defaults
-  to `"en"`), set at `easy-diff init [language]` time. Edit it by hand and re-run
-  `easy-diff generate` to change it later.
+- `config.json` — report settings:
+  - `language` (`"en"` or `"fr"`, defaults to `"en"`) — the language the LLM writes the
+    report's prose in, set at `easy-diff init [language]` time.
+  - `reportLanguage` (`"en"` or `"fr"`, defaults to `"en"`) — the language of the report
+    *viewer*'s own static UI (buttons, headings, etc.). Independent of `language` and not
+    model output at all — there's no CLI flag for it yet, edit it by hand.
+
+  Edit either field by hand and re-run `easy-diff generate` to change it later.
 
 Safe to commit — nothing here is generated output. Generated reports live in the
 gitignored `easy-diff/` folder at the repo root instead.
