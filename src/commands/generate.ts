@@ -1,10 +1,35 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { repoRoot, currentBranch, detectBaseBranch, changedFiles } from '../lib/git.js';
+import { promptChoice } from '../lib/prompt.js';
 import { targetPaths } from '../lib/paths.js';
 import { runAnalysis } from '../lib/claude-runner.js';
 import { extractAnalysis } from '../lib/schema.js';
 import { buildReportData, writeReport } from '../render/report.js';
+
+/** Resolves the base branch, prompting interactively if multiple candidates tie. */
+async function resolveBase(root: string): Promise<string> {
+  const detection = detectBaseBranch(root);
+  if (detection.status === 'found') return detection.base;
+
+  if (detection.status === 'not-found') {
+    throw new Error(
+      'Could not auto-detect a base branch (no upstream tracking branch, no remote or local ' +
+        'branches to compare against). Pass one explicitly: easy-diff generate <base-branch>'
+    );
+  }
+
+  const refs = detection.candidates.map((c) => c.ref);
+  if (!process.stdin.isTTY) {
+    throw new Error(
+      'Multiple branches are equally likely candidates for the base:\n' +
+        refs.map((ref) => `  - ${ref}`).join('\n') +
+        '\nPass one explicitly: easy-diff generate <base-branch>'
+    );
+  }
+
+  return promptChoice('Could not confidently detect a single base branch — pick one:', refs);
+}
 
 export interface GenerateOptions {
   base?: string;
@@ -31,7 +56,7 @@ export async function generate(options: GenerateOptions = {}): Promise<void> {
     }
   }
 
-  const base = options.base ?? detectBaseBranch(root);
+  const base = options.base ?? (await resolveBase(root));
   const branch = currentBranch(root);
   if (branch === base) {
     throw new Error(`Current branch is the same as the base branch (${base}). Nothing to review.`);

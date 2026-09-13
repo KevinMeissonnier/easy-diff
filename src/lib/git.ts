@@ -18,26 +18,102 @@ export function currentBranch(cwd: string): string {
 
 const CANDIDATE_BASES = ['main', 'master', 'develop'];
 
-export function detectBaseBranch(cwd: string): string {
+export interface BaseCandidate {
+  /** A ref usable directly in `git diff <ref>...HEAD` (e.g. "origin/6.4" or "main"). */
+  ref: string;
+  /** Commits unique to HEAD since its merge-base with this ref — lower means "closer fork point". */
+  aheadCount: number;
+}
+
+export type BaseDetection =
+  | { status: 'found'; base: string }
+  | { status: 'ambiguous'; candidates: BaseCandidate[] }
+  | { status: 'not-found' };
+
+function refShortNames(pattern: string, cwd: string): string[] {
+  const out = run(['for-each-ref', '--format=%(refname:short)', pattern], cwd);
+  return out ? out.split('\n').filter(Boolean) : [];
+}
+
+/** Remote branches if the repo has an `origin`, otherwise local branches — whichever exists. */
+function candidateBaseRefs(cwd: string): string[] {
+  // refs/remotes/origin/HEAD is a symbolic ref; git's `refname:short` quirkily renders it as
+  // just "origin" (not "origin/HEAD"), so both forms need excluding.
+  const remote = refShortNames('refs/remotes/origin', cwd).filter(
+    (ref) => ref !== 'origin' && ref !== 'origin/HEAD'
+  );
+  return remote.length > 0 ? remote : refShortNames('refs/heads', cwd);
+}
+
+/**
+ * Ranks branches by how closely HEAD forked from them: for each candidate, the number of
+ * commits reachable from HEAD but not from their merge-base. Git has no notion of "which
+ * branch this one was forked from" — this is the closest deducible approximation, and it's
+ * name-agnostic (works for `main`/`master` as well as versioned branches like `6.4`).
+ */
+export function rankBaseCandidates(cwd: string): BaseCandidate[] {
+  let head: string;
+  try {
+    head = run(['rev-parse', 'HEAD'], cwd);
+  } catch {
+    return []; // unborn branch, no commits yet
+  }
+  const branch = currentBranch(cwd);
+  const candidates: BaseCandidate[] = [];
+  for (const ref of candidateBaseRefs(cwd)) {
+    const shortName = ref.startsWith('origin/') ? ref.slice('origin/'.length) : ref;
+    if (shortName === branch) continue; // this branch's own (remote-tracking) mirror, not a base
+    try {
+      if (run(['rev-parse', ref], cwd) === head) continue; // identical history, not a base
+      const mergeBaseSha = run(['merge-base', ref, 'HEAD'], cwd);
+      const aheadCount = Number(run(['rev-list', '--count', `${mergeBaseSha}..HEAD`], cwd));
+      candidates.push({ ref, aheadCount });
+    } catch {
+      continue; // unrelated history or unresolvable ref — skip
+    }
+  }
+  return candidates.sort((a, b) => a.aheadCount - b.aheadCount);
+}
+
+/**
+ * Determines the base branch to diff HEAD against, in order of confidence:
+ * 1. The configured upstream tracking branch (`@{upstream}`), if it differs from HEAD.
+ * 2. The branch HEAD most likely forked from, by merge-base proximity (see rankBaseCandidates).
+ * 3. The legacy fallback: `origin/HEAD`, then the first of main/master/develop that exists.
+ */
+export function detectBaseBranch(cwd: string): BaseDetection {
+  try {
+    const upstream = run(['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'], cwd);
+    if (run(['rev-parse', upstream], cwd) !== run(['rev-parse', 'HEAD'], cwd)) {
+      return { status: 'found', base: upstream };
+    }
+  } catch {
+    // No upstream configured, or it's unresolvable — fall through to merge-base ranking.
+  }
+
+  const ranked = rankBaseCandidates(cwd);
+  if (ranked.length > 0) {
+    const bestScore = ranked[0].aheadCount;
+    const tied = ranked.filter((c) => c.aheadCount === bestScore);
+    return tied.length === 1 ? { status: 'found', base: tied[0].ref } : { status: 'ambiguous', candidates: tied };
+  }
+
   try {
     const ref = run(['symbolic-ref', 'refs/remotes/origin/HEAD'], cwd);
     const name = ref.replace('refs/remotes/origin/', '');
-    if (name) return name;
+    if (name) return { status: 'found', base: name };
   } catch {
     // No tracked remote HEAD — fall through to local candidates.
   }
   for (const candidate of CANDIDATE_BASES) {
     try {
       run(['rev-parse', '--verify', candidate], cwd);
-      return candidate;
+      return { status: 'found', base: candidate };
     } catch {
       continue;
     }
   }
-  throw new Error(
-    'Could not auto-detect a base branch (no origin/HEAD, no local main/master/develop). ' +
-      'Pass one explicitly: easy-diff generate <base-branch>'
-  );
+  return { status: 'not-found' };
 }
 
 export function changedFiles(base: string, cwd: string): string[] {
