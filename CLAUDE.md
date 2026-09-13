@@ -129,6 +129,14 @@ d'un diff brut à reverse-engineer. Voir `README.md` pour le concept et l'archit
   cette langue. `templates/hooks/validate-language.cjs` est un second hook `Stop`, indépendant de
   `validate-analysis.cjs`, qui vérifie heuristiquement (fréquence de mots-outils FR/EN, pas de
   détection exacte) que le modèle s'est exécuté, et bloque avec demande de réécriture sinon.
+- **`config.json` a deux champs langue distincts, à ne pas confondre.** `language` (ci-dessus) est
+  la langue dans laquelle le LLM écrit la prose de l'analyse — c'est un réglage du prompt, vérifié
+  par `validate-language.cjs`. `reportLanguage` (défaut `en`) est la langue des libellés statiques
+  du *viewer* HTML (boutons, titres — `templates/report/i18n.js`, chargé par `index.html` avant
+  `app.js`) : ce n'est pas une sortie du modèle, `generate.ts` la lit directement via
+  `readReportLanguage` (`src/lib/config.ts`) et l'embarque dans `ReportData.reportLanguage` ; rien
+  ne vérifie sa conformité puisqu'aucun LLM n'intervient. Pas de flag CLI pour l'instant — édition
+  à la main dans `config.json`.
 - **Chemins et bundling** : pas de bundler (tsup/esbuild) pour l'instant — build via `tsc` brut qui
   préserve l'arborescence `src/` → `dist/`, dont dépend `src/lib/paths.ts` (calcul de
   `PACKAGE_ROOT` relatif à sa propre position sur disque). Introduire un bundler nécessiterait de

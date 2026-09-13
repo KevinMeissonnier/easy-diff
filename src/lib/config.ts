@@ -1,8 +1,14 @@
+import fs from 'node:fs';
+
 /**
  * `.claude/easy-diff/config.json` — repo-level settings for the generated report, written
- * by `easy-diff init`. Currently a single field: the language the LLM should write its
- * report in. `templates/hooks/validate-language.cjs` reads this same file (independently,
- * as vanilla JS — see that file) to check the model actually complied.
+ * by `easy-diff init`. Two independent fields, both `Language`:
+ * - `language`: the language the LLM should write the report's prose in.
+ *   `templates/hooks/validate-language.cjs` reads this same file (independently, as
+ *   vanilla JS — see that file) to check the model actually complied.
+ * - `reportLanguage`: the language of the report *viewer*'s own static UI (buttons,
+ *   headings, etc. in `templates/report/`) — not model output at all, so nothing checks
+ *   compliance for it. Defaults to English; edit `config.json` by hand to change it.
  */
 
 export const SUPPORTED_LANGUAGES = ['en', 'fr'] as const;
@@ -11,6 +17,7 @@ export const DEFAULT_LANGUAGE: Language = 'en';
 
 export interface EasyDiffConfig {
   language: Language;
+  reportLanguage: Language;
 }
 
 /** Validates and normalizes a user-supplied language; falls back to English if omitted. */
@@ -25,6 +32,27 @@ export function resolveLanguage(input: string | undefined): Language {
   );
 }
 
-export function buildConfig(language: Language): EasyDiffConfig {
-  return { language };
+export function buildConfig(language: Language, reportLanguage: Language = DEFAULT_LANGUAGE): EasyDiffConfig {
+  return { language, reportLanguage };
+}
+
+/**
+ * Reads `reportLanguage` back out of `config.json` for `easy-diff generate` to pass into
+ * the rendered report. Fails open to the default on anything missing/unreadable/invalid —
+ * same policy as `validate-language.cjs`'s `readConfiguredLanguage`, kept independent of it.
+ */
+export function readReportLanguage(configFile: string): Language {
+  try {
+    const raw: unknown = JSON.parse(fs.readFileSync(configFile, 'utf8'));
+    if (
+      raw &&
+      typeof raw === 'object' &&
+      (SUPPORTED_LANGUAGES as readonly string[]).includes((raw as { reportLanguage?: unknown }).reportLanguage as string)
+    ) {
+      return (raw as { reportLanguage: Language }).reportLanguage;
+    }
+  } catch {
+    // Missing/unreadable/invalid config: fall back to the default language.
+  }
+  return DEFAULT_LANGUAGE;
 }

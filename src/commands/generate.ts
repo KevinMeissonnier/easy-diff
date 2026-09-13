@@ -5,6 +5,7 @@ import { promptChoice } from '../lib/prompt.js';
 import { targetPaths } from '../lib/paths.js';
 import { runAnalysis } from '../lib/claude-runner.js';
 import { extractAnalysis } from '../lib/schema.js';
+import { readReportLanguage } from '../lib/config.js';
 import { buildReportData, writeReport } from '../render/report.js';
 
 /** Resolves the base branch, prompting interactively if multiple candidates tie. */
@@ -80,7 +81,8 @@ export async function generate(options: GenerateOptions = {}): Promise<void> {
   fs.mkdirSync(path.dirname(paths.dataFile), { recursive: true });
   fs.writeFileSync(paths.dataFile, JSON.stringify(analysis, null, 2));
 
-  const reportData = buildReportData(analysis, base, root);
+  const reportLanguage = readReportLanguage(paths.configFile);
+  const reportData = buildReportData(analysis, base, root, reportLanguage);
   writeReport(paths.reportDir, reportData);
 
   const indexFile = path.join(paths.reportDir, 'index.html');

@@ -30,7 +30,10 @@ test('init scaffolds the command, guard config and .gitignore entry', async (t) 
     assert.ok(fs.existsSync(file), `expected ${file} to exist`);
   }
   assert.match(fs.readFileSync(paths.gitignoreFile, 'utf8'), /^\/easy-diff\/$/m);
-  assert.deepEqual(JSON.parse(fs.readFileSync(paths.configFile, 'utf8')), { language: 'en' });
+  assert.deepEqual(JSON.parse(fs.readFileSync(paths.configFile, 'utf8')), {
+    language: 'en',
+    reportLanguage: 'en',
+  });
 
   await t.test('does not accidentally gitignore .claude/easy-diff/ (shares a leaf name with the output dir)', () => {
     let ignored = true;
@@ -55,12 +58,18 @@ test('init scaffolds the command, guard config and .gitignore entry', async (t) 
 
   await t.test('accepts an explicit supported language', () => {
     init({ force: true, language: 'fr' });
-    assert.deepEqual(JSON.parse(fs.readFileSync(paths.configFile, 'utf8')), { language: 'fr' });
+    assert.deepEqual(JSON.parse(fs.readFileSync(paths.configFile, 'utf8')), {
+      language: 'fr',
+      reportLanguage: 'en',
+    });
   });
 
   await t.test('is case-insensitive', () => {
     init({ force: true, language: 'FR' });
-    assert.deepEqual(JSON.parse(fs.readFileSync(paths.configFile, 'utf8')), { language: 'fr' });
+    assert.deepEqual(JSON.parse(fs.readFileSync(paths.configFile, 'utf8')), {
+      language: 'fr',
+      reportLanguage: 'en',
+    });
   });
 
   await t.test('rejects an unsupported language', () => {
