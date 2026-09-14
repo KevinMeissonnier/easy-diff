@@ -11,7 +11,7 @@ export interface RenderedLine {
   text: string;
   oldLine?: number;
   newLine?: number;
-  focus?: boolean;
+  watchpoint?: string;
 }
 
 export interface RenderedHunk {
@@ -24,14 +24,20 @@ export interface RenderedHunk {
   lines: RenderedLine[];
 }
 
+export interface FileWatchpoint {
+  hunkIndex: number;
+  line: number;
+  note: string;
+}
+
 export interface FileWithHunks {
   path: string;
   change_type: Analysis['steps'][number]['files'][number]['change_type'];
   why: string;
-  watchpoints: string[];
   confidence: Analysis['steps'][number]['files'][number]['confidence'];
   churn: { add: number; del: number };
   hunks: RenderedHunk[];
+  watchpoints: FileWatchpoint[];
 }
 
 export interface StepWithHunks {
@@ -79,15 +85,18 @@ export function buildReportData(
     role: step.role,
     intro: step.intro,
     detail: step.detail,
-    files: step.files.map((file) => ({
-      path: file.path,
-      change_type: file.change_type,
-      why: file.why,
-      watchpoints: file.watchpoints,
-      confidence: file.confidence,
-      churn: numstat.get(file.path) ?? ZERO_CHURN,
-      hunks: pickHunks(safeDiff(base, file.path, cwd), file.hunks),
-    })),
+    files: step.files.map((file) => {
+      const hunks = pickHunks(safeDiff(base, file.path, cwd), file.hunks);
+      return {
+        path: file.path,
+        change_type: file.change_type,
+        why: file.why,
+        confidence: file.confidence,
+        churn: numstat.get(file.path) ?? ZERO_CHURN,
+        hunks,
+        watchpoints: flattenWatchpoints(hunks),
+      };
+    }),
   }));
   const meta: ReportMeta = {
     commits: safeCommitCount(base, cwd),
@@ -117,8 +126,9 @@ function sumBy(numstat: Map<string, { add: number; del: number }>, key: 'add' | 
  * Picks the hunks the model pointed to (by index into the file's actual hunks, in diff
  * order) out of `parsed` — the file's real hunks, parsed from `git diff` ourselves. The
  * model's line numbers are never trusted for content or positions; they only select which
- * of our own parsed hunks to show and which lines within it to mark as `focus`. If none of
- * the model's indices land on a real hunk, every parsed hunk is shown instead of nothing.
+ * of our own parsed hunks to show and which of its lines carry a `watchpoint` note. If none
+ * of the model's indices land on a real hunk, every parsed hunk is shown instead of nothing
+ * — and, as a consequence, without any watchpoint attached.
  */
 function pickHunks(diffText: string, requested: Analysis['steps'][number]['files'][number]['hunks']): RenderedHunk[] {
   const parsed = parseDiffHunks(diffText);
@@ -126,25 +136,33 @@ function pickHunks(diffText: string, requested: Analysis['steps'][number]['files
   for (const req of requested) {
     const hunk = parsed[req.index];
     if (!hunk) continue;
-    // focus_lines are new-file line numbers (per the prompt), except for a pure-deletion
-    // hunk, which has no new side at all — there, fall back to old-file line numbers.
-    const focusSide = hunk.new_lines === 0 ? 'oldLine' : 'newLine';
+    // watchpoint lines are new-file line numbers (per the prompt), except for a
+    // pure-deletion hunk, which has no new side at all — there, fall back to old-file line
+    // numbers.
+    const side = hunk.new_lines === 0 ? 'oldLine' : 'newLine';
+    const notesByLine = new Map(req.watchpoints.map((w) => [w.line, w.note]));
     picked.push({
       ...hunk,
       label: req.label ?? hunk.label,
       note: req.note,
       lines: hunk.lines.map((line) => ({
         ...line,
-        focus: isFocused(line[focusSide], req.focus_lines),
+        watchpoint: line[side] === undefined ? undefined : notesByLine.get(line[side]!),
       })),
     });
   }
   return picked.length > 0 ? picked : parsed;
 }
 
-function isFocused(lineNumber: number | undefined, focusLines: number[] | undefined): boolean {
-  if (lineNumber === undefined || !focusLines || focusLines.length === 0) return false;
-  return focusLines.includes(lineNumber);
+function flattenWatchpoints(hunks: RenderedHunk[]): FileWatchpoint[] {
+  const watchpoints: FileWatchpoint[] = [];
+  hunks.forEach((hunk, hunkIndex) => {
+    for (const line of hunk.lines) {
+      if (!line.watchpoint) continue;
+      watchpoints.push({ hunkIndex, line: (line.newLine ?? line.oldLine)!, note: line.watchpoint });
+    }
+  });
+  return watchpoints;
 }
 
 const HUNK_HEADER = /^@@ -(\d+)(?:,(\d+))?\s\+(\d+)(?:,(\d+))?\s@@(.*)$/;

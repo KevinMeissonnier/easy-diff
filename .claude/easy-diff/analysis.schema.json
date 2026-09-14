@@ -117,11 +117,6 @@
                   "type": "string",
                   "description": "Why this specific file changed this way, explained to a reviewer."
                 },
-                "watchpoints": {
-                  "type": "array",
-                  "items": { "type": "string" },
-                  "description": "Things worth double-checking in this specific file. Omit or leave empty if there are none."
-                },
                 "confidence": {
                   "type": "string",
                   "enum": ["high", "medium", "low"],
@@ -152,10 +147,25 @@
                         "type": "string",
                         "description": "Optional short note about this specific hunk."
                       },
-                      "focus_lines": {
+                      "watchpoints": {
                         "type": "array",
-                        "items": { "type": "integer", "minimum": 1 },
-                        "description": "New-file line numbers within this hunk that most deserve the reviewer's eye. Omit if the whole hunk is equally relevant."
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": ["line", "note"],
+                          "properties": {
+                            "line": {
+                              "type": "integer",
+                              "minimum": 1,
+                              "description": "New-file line number this watchpoint applies to (old-file line number for a pure-deletion hunk, which has no new-file side)."
+                            },
+                            "note": {
+                              "type": "string",
+                              "description": "Why this exact line needs a second look. A concrete correctness/security/data-risk concern, never a style or naming nit."
+                            }
+                          }
+                        },
+                        "description": "Real risk points on specific lines in this hunk. Omit entirely if there are none — most hunks have none."
                       }
                     }
                   }

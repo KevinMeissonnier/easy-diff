@@ -52,12 +52,13 @@ test('extracts from a real captured envelope (structured_output field)', () => {
 });
 
 test('extracts from a real envelope where the model flagged a prompt-injection attempt', () => {
+  // This fixture predates the hunk-level `watchpoints` shape (it was captured with the old
+  // file-level `watchpoints`/hunk `focus_lines` fields, silently dropped by zod as unknown
+  // keys) — what matters here is that extraction still succeeds and the finding survives in
+  // the overview, not the now-removed field it originally lived in.
   const raw = fixture('claude-envelope.injection-attempt.json');
   const analysis = extractAnalysis(raw);
-  const flagged = analysis.steps.some((step) =>
-    step.files.some((file) => file.watchpoints.some((w) => w.toLowerCase().includes('destructive')))
-  );
-  assert.ok(flagged, 'expected the injection attempt to be called out in a file watchpoint');
+  assert.match(analysis.overview.risks.toLowerCase(), /backdoor_comment\.py/);
 });
 
 test('falls back to a JSON-encoded string under `result`', () => {
@@ -72,12 +73,12 @@ test('accepts the bare analysis shape with no envelope at all', () => {
   assert.equal(analysis.merge_request.title, 't');
 });
 
-test("defaults a file's missing watchpoints to an empty array", () => {
+test("defaults a hunk's missing watchpoints to an empty array", () => {
   // watchpoints is deliberately absent here (built by hand, not via minimalPayload) to
   // confirm the schema fills it in rather than requiring the model to always supply it.
   const payload = minimalPayload();
   const analysis = extractAnalysis(JSON.stringify(payload));
-  assert.deepEqual(analysis.steps[0]?.files[0]?.watchpoints, []);
+  assert.deepEqual(analysis.steps[0]?.files[0]?.hunks[0]?.watchpoints, []);
 });
 
 test('throws with the raw output included when nothing matches the schema', () => {

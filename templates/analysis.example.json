@@ -31,7 +31,6 @@
           "path": "src/cache/base.py",
           "change_type": "added",
           "why": "A Protocol rather than an abstract base class: tests can pass a plain dict without inheriting anything, and Redis stays a dependency of the infrastructure layer only.",
-          "watchpoints": [],
           "confidence": "high",
           "hunks": [
             { "index": 0, "new_start": 1, "new_lines": 22, "old_start": 0, "old_lines": 0, "label": "new file" }
@@ -52,9 +51,6 @@
           "path": "src/auth/token_service.py",
           "change_type": "modified",
           "why": "The cache read happens after signature decoding, not before. A badly signed token must never be used as a lookup key, otherwise the signature stops protecting anything.",
-          "watchpoints": [
-            "The failure path when the cache is unavailable falls back to the database — confirm this against step 5."
-          ],
           "confidence": "high",
           "hunks": [
             {
@@ -63,8 +59,10 @@
               "new_lines": 12,
               "old_start": 38,
               "old_lines": 7,
-              "focus_lines": [40, 41],
-              "label": "def verify"
+              "label": "def verify",
+              "watchpoints": [
+                { "line": 41, "note": "Cache-unavailable path falls back to the database — confirm this against step 5." }
+              ]
             },
             {
               "index": 1,
@@ -72,7 +70,6 @@
               "new_lines": 6,
               "old_start": 61,
               "old_lines": 3,
-              "focus_lines": [67],
               "note": "The write-back uses the row's remaining TTL, not a fixed one, so the cache entry can never outlive the session."
             }
           ]
@@ -81,7 +78,6 @@
           "path": "src/api/deps.py",
           "change_type": "modified",
           "why": "The cache is built once at startup and injected. One instance per request would open a Redis connection per request, cancelling the gain we are after.",
-          "watchpoints": [],
           "confidence": "high",
           "hunks": [
             { "index": 0, "new_start": 12, "new_lines": 13, "old_start": 12, "old_lines": 4 }
@@ -102,10 +98,6 @@
           "path": "src/auth/revocation.py",
           "change_type": "modified",
           "why": "The cache delete runs in the same logical transaction as the database revocation and before returning to the caller: if Redis fails, the revocation fails too and surfaces as an error.",
-          "watchpoints": [
-            "Ordering is deliberate — database first, cache second. Reversed, a crash between the two would leave a revoked token in the cache.",
-            "Bulk revocation (log out all devices) loops over jtis; acceptable up to a few dozen sessions, worth a second opinion beyond that."
-          ],
           "confidence": "medium",
           "hunks": [
             {
@@ -114,8 +106,11 @@
               "new_lines": 18,
               "old_start": 24,
               "old_lines": 6,
-              "focus_lines": [26, 29],
-              "label": "def revoke"
+              "label": "def revoke",
+              "watchpoints": [
+                { "line": 26, "note": "Ordering is deliberate — database first, cache second. Reversed, a crash between the two would leave a revoked token valid." },
+                { "line": 29, "note": "Bulk revocation loops over jtis; acceptable up to a few dozen sessions, a real risk beyond that." }
+              ]
             }
           ]
         },
@@ -123,7 +118,6 @@
           "path": "src/cache/redis_store.py",
           "change_type": "modified",
           "why": "drop() completes the contract. A missing key is not an error: revoking a token that was never cached is a normal case.",
-          "watchpoints": [],
           "confidence": "high",
           "hunks": [
             { "index": 1, "new_start": 30, "new_lines": 13, "old_start": 30, "old_lines": 2 }

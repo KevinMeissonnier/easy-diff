@@ -16,7 +16,7 @@ Base branch: `$1` (if empty, assume `main`).
 1. Read `.claude/easy-diff/config.json` for its `language` field ("en" or "fr"; treat it as
    "en" if the file is missing or the field is absent/invalid). Write every prose field
    below — `merge_request.title`, all of `overview`, and each step's `title`/`role`/
-   `intro`/`detail` plus each file's `why`/`watchpoints` — in that language. This does not
+   `intro`/`detail` plus each file's `why` and each hunk watchpoint's `note` — in that language. This does not
    apply to enum values (`kind`, `confidence`, `change_type`), ids/slugs, file paths, or
    anything else that isn't natural-language prose — those stay exactly as specified
    regardless of language.
@@ -43,9 +43,11 @@ Base branch: `$1` (if empty, assume `main`).
    because it exists; skip ones with nothing worth saying (e.g. pure reformatting), but every file
    listed under a step must have at least one hunk.
 7. For each file, note its `confidence`: how sure you are that you've understood its role
-   correctly (lower it if you couldn't see its callers or tests). Add `watchpoints` — short, file-
-   specific things worth double-checking — and leave the array empty if there genuinely are none.
-   Uncertainty belongs in `confidence`, not in hedge words inside the prose — see below.
+   correctly (lower it if you couldn't see its callers or tests). Uncertainty belongs in
+   `confidence`, not in hedge words inside the prose — see below.
+   Add a hunk `watchpoint` only on the exact line that carries a genuine risk — see
+   "What counts as a watchpoint" below. Most hunks have none; leave the array empty or omit it
+   rather than force one.
 8. Write a high-level overview *first*, before the steps: `what` changed (plain language, no
    code), `why` (the problem or goal), `risks` (the main thing to keep in mind — say explicitly if
    there truly isn't one), and `out_of_scope` (what this deliberately doesn't touch).
@@ -69,7 +71,7 @@ story-like (per step 5), but write each field flat and direct:
   - `step.role`: a short phrase (3–8 words), not a sentence — a label, not a paraphrase of the
     title.
   - `file.why`: one sentence.
-  - `file.watchpoints`: up to 3 items, each under 15 words.
+  - a hunk watchpoint's `note`: under 15 words.
 
 Examples (for `file.why`, but the tone applies everywhere):
 
@@ -77,8 +79,26 @@ Examples (for `file.why`, but the tone applies everywhere):
 - Bad: "This file is quite important because it handles configuration which is used in several
   parts of the system and could potentially have an impact on overall behavior."
 - Good watchpoint: "Retry logic has no max attempts — check the caller sets one."
-- Bad watchpoint: "It might be worth double-checking that this retry logic, which was added in
-  this change, behaves correctly in all cases and doesn't cause issues."
+- Bad watchpoint (hedges instead of stating the risk): "It might be worth double-checking that
+  this retry logic, which was added in this change, behaves correctly in all cases."
+- Bad watchpoint (too minor — see below): "Variable name could be clearer."
+
+## What counts as a watchpoint
+
+A watchpoint is a claim that this exact line could cause a bug, a security issue, data loss, or
+a silent behavior change if it goes unnoticed — not a general "this deserves attention" pointer.
+Before adding one, check it against a concrete failure: what breaks, and for whom, if this line
+is wrong?
+
+- Flag: unchecked failure paths, ordering that matters (a step that must happen before another),
+  missing bounds/validation on untrusted input, a race or concurrency assumption, a resource that
+  might not get released, a behavior change that isn't obviously backward-compatible.
+- Do not flag: style, naming, formatting, missing comments, a test that "could" cover more, or
+  anything you'd only mention as a nice-to-have. If you're reaching for a hedge word to justify
+  it, it's not a real watchpoint — leave it out.
+
+Every watchpoint becomes a highlighted line in the rendered diff, so an unwarranted one is not
+neutral — it trains the reviewer to distrust the highlight. When in doubt, omit it.
 
 ## Determining hunk line numbers
 
@@ -95,9 +115,10 @@ from the header — never estimate or compute them yourself. If a count is omitt
 0-based position among this file's hunks, in the order they appear (first hunk in the diff is
 index 0). Put anything after the second `@@` in `label` if the header has one.
 
-If you call out `focus_lines` for a hunk, they must be line numbers on the new-file side, i.e.
-within `[new_start, new_start + new_lines - 1]` — omit the field rather than guess if the whole
-hunk is equally relevant, or if the hunk has no new-file side (a pure deletion).
+If you call out a `watchpoints` entry for a hunk, its `line` must be a line number on the
+new-file side, i.e. within `[new_start, new_start + new_lines - 1]` — or on the old-file side if
+the hunk has no new-file side (a pure deletion). Never guess the number; read it off the hunk you
+just quoted the header of.
 
 ## Constraints
 
