@@ -4,6 +4,11 @@ const ChangeType = z.enum(['added', 'modified', 'deleted', 'renamed']);
 const Confidence = z.enum(['high', 'medium', 'low']);
 const StepKind = z.enum(['foundation', 'core', 'wiring', 'delicate', 'tests']);
 
+const HunkWatchpoint = z.object({
+  line: z.number().int().positive(),
+  note: z.string(),
+});
+
 const Hunk = z.object({
   index: z.number().int().nonnegative(),
   old_start: z.number().int().nonnegative(),
@@ -12,14 +17,13 @@ const Hunk = z.object({
   new_lines: z.number().int().nonnegative(),
   label: z.string().optional(),
   note: z.string().optional(),
-  focus_lines: z.array(z.number().int().positive()).optional(),
+  watchpoints: z.array(HunkWatchpoint).optional().default([]),
 });
 
 const FileEntry = z.object({
   path: z.string(),
   change_type: ChangeType,
   why: z.string(),
-  watchpoints: z.array(z.string()).optional().default([]),
   confidence: Confidence,
   hunks: z.array(Hunk).min(1),
 });

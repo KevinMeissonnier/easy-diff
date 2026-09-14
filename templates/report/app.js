@@ -316,10 +316,10 @@
     if (!points || !points.length) return '';
     const items = points
       .map(
-        (p) => `
-        <li class="grid gap-3 items-start" style="grid-template-columns:${GRID.watchRow}">
+        (w) => `
+        <li class="grid gap-3 items-start cursor-pointer hover:text-accent-200" style="grid-template-columns:${GRID.watchRow}" data-action="goto-watchpoint" data-hunk="${w.hunkIndex}" data-line="${w.line}">
           <span class="w-[5px] h-[5px] rounded-full bg-accent-500 mt-[7px]"></span>
-          <span class="text-neutral-300 text-[13.5px] text-pretty">${escapeHtml(p)}</span>
+          <span class="text-neutral-300 text-[13.5px] text-pretty">${escapeHtml(w.note)}</span>
         </li>`
       )
       .join('');
@@ -330,7 +330,10 @@
       </div>`;
   }
 
-  function renderHunk(hunk) {
+  // hunkIndex is this hunk's position within the file's own rendered hunks — it's how a
+  // watchpoint list item (see renderWatchpoints) finds its way back to the right line via
+  // the `wp-<hunkIndex>-<line>` id below.
+  function renderHunk(hunk, hunkIndex) {
     const header =
       `@@ -${hunk.old_start},${hunk.old_lines} +${hunk.new_start},${hunk.new_lines} @@` +
       (hunk.label ? ` ${hunk.label}` : '');
@@ -342,9 +345,10 @@
           line.type === 'add' ? 'text-diff-add-sign' : line.type === 'del' ? 'text-diff-del-sign' : '';
         const codeColor = line.type === 'ctx' ? 'text-neutral-500' : 'text-neutral-200';
         const gutter = line.type === 'del' ? '' : line.newLine ?? '';
-        const focus = line.focus ? "shadow-[inset_3px_0_0_var(--color-accent)] font-semibold" : '';
+        const mark = line.watchpoint ? "shadow-[inset_3px_0_0_var(--color-accent)] font-semibold" : '';
+        const idAttr = line.watchpoint ? ` id="wp-${hunkIndex}-${line.newLine ?? line.oldLine}"` : '';
         return `
-          <div class="grid gap-3 px-4 py-[1px] ${rowBg} ${focus}" style="grid-template-columns:${GRID.hunkLine}">
+          <div${idAttr} class="grid gap-3 px-4 py-[1px] ${rowBg} ${mark}" style="grid-template-columns:${GRID.hunkLine}">
             <span class="font-mono text-[11px] text-neutral-700 text-right">${gutter}</span>
             <span class="font-mono text-[12px] ${signColor}">${sign}</span>
             <span class="font-mono text-[12.5px] ${codeColor} whitespace-pre-wrap break-words">${escapeHtml(line.text)}</span>
@@ -461,7 +465,7 @@
 
             ${
               file.hunks.length
-                ? file.hunks.map(renderHunk).join('')
+                ? file.hunks.map((hunk, hi) => renderHunk(hunk, hi)).join('')
                 : `<div class="text-neutral-600 text-[13px]">${t.noHunkAvailable}</div>`
             }
 
@@ -558,6 +562,11 @@
       case 'next-file':
         stepFile(1);
         break;
+      case 'goto-watchpoint': {
+        const target = document.getElementById(`wp-${action.dataset.hunk}-${action.dataset.line}`);
+        target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        break;
+      }
     }
   });
 

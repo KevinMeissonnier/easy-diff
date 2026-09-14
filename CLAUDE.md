@@ -173,9 +173,21 @@ npm run dev -- init   # runs from source via tsx, no build needed
 ## Rich analysis format (MR metadata, targeted hunks, confidence, watchpoints)
 
 `templates/analysis.example.json` is now the real format, not just a target: MR metadata, `hunks`
-with exact line numbers and `focus_lines`, `confidence`, `watchpoints`, per-step `kind`, per-file
-`change_type`. The JSON schema, the prompt, `src/lib/schema.ts` (zod) and the rendering
-(`src/render/report.ts`, viewer `templates/report/`) are aligned with this shape.
+with exact line numbers, `confidence`, per-step `kind`, per-file `change_type`. The JSON schema,
+the prompt, `src/lib/schema.ts` (zod) and the rendering (`src/render/report.ts`, viewer
+`templates/report/`) are aligned with this shape.
+
+`watchpoints` live on a hunk, not a file: `hunk.watchpoints: [{ line, note }]`. There is no
+separate generic "focus" concept — a line gets the purple highlight in the viewer if and only if
+it carries a watchpoint, and that highlight is the only thing the "À vérifier"/"Watch for" card's
+entries point back to (clicking one scrolls the diff to that exact line — the `note` itself is
+only ever read from that card, not on hover over the line). Keeping this a single concept is
+deliberate: a prior version had
+`file.watchpoints` (plain strings, no line) and `hunk.focus_lines` (line numbers, no text) as two
+unrelated fields, which made it impossible to link a watchpoint's explanation to the line it was
+about. The prompt is correspondingly strict about what qualifies as a watchpoint — a concrete
+correctness/security/data-risk claim about that exact line, never a style nit — since every one
+becomes a highlight the reviewer is trained to trust.
 
 The model never provides a hunk's content, only its `index` (position in the order `git diff`
 produces them) and line numbers for indicative/labelling purposes only. `report.ts` re-parses
