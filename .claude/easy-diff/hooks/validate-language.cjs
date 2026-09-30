@@ -118,6 +118,14 @@ function collectProseText(analysis) {
   if (isObject(analysis.overview)) {
     push(analysis.overview.what);
     push(analysis.overview.why);
+    push(analysis.overview.mental_model);
+    if (Array.isArray(analysis.overview.decisions)) {
+      for (const decision of analysis.overview.decisions) {
+        if (!isObject(decision)) continue;
+        push(decision.choice);
+        push(decision.reason);
+      }
+    }
     push(analysis.overview.risks);
     push(analysis.overview.out_of_scope);
   }
@@ -125,9 +133,7 @@ function collectProseText(analysis) {
     for (const step of analysis.steps) {
       if (!isObject(step)) continue;
       push(step.title);
-      push(step.role);
-      push(step.intro);
-      push(step.detail);
+      push(step.narrative);
       if (Array.isArray(step.files)) {
         for (const file of step.files) {
           if (!isObject(file)) continue;

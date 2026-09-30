@@ -23,7 +23,7 @@ const Hunk = z.object({
 const FileEntry = z.object({
   path: z.string(),
   change_type: ChangeType,
-  why: z.string(),
+  why: z.string().optional(),
   confidence: Confidence,
   hunks: z.array(Hunk).min(1),
 });
@@ -32,9 +32,7 @@ const Step = z.object({
   id: z.string(),
   kind: StepKind,
   title: z.string(),
-  role: z.string(),
-  intro: z.string(),
-  detail: z.string(),
+  narrative: z.string(),
   files: z.array(FileEntry).min(1),
 });
 
@@ -47,9 +45,16 @@ const MergeRequest = z.object({
   head_sha: z.string(),
 });
 
+const Decision = z.object({
+  choice: z.string(),
+  reason: z.string(),
+});
+
 const Overview = z.object({
   what: z.string(),
   why: z.string(),
+  mental_model: z.string(),
+  decisions: z.array(Decision),
   risks: z.string(),
   out_of_scope: z.string(),
   estimated_reading_minutes: z.number().int().positive(),
