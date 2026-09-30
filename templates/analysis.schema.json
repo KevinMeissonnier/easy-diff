@@ -42,7 +42,7 @@
     "overview": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["what", "why", "risks", "out_of_scope", "estimated_reading_minutes"],
+      "required": ["what", "why", "mental_model", "decisions", "risks", "out_of_scope", "estimated_reading_minutes"],
       "properties": {
         "what": {
           "type": "string",
@@ -51,6 +51,23 @@
         "why": {
           "type": "string",
           "description": "The problem or goal this change addresses."
+        },
+        "mental_model": {
+          "type": "string",
+          "description": "How the pieces of this change fit together, in the order data or control flows through them. Introduces each domain concept in plain words before naming the code that implements it. Plain text; separate paragraphs with a blank line."
+        },
+        "decisions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["choice", "reason"],
+            "properties": {
+              "choice": { "type": "string", "description": "The choice that was made, stated plainly." },
+              "reason": { "type": "string", "description": "Why — including what was rejected, when that's what a reviewer would ask about." }
+            }
+          },
+          "description": "The design choices a reviewer is likely to question. Empty if none is worth calling out."
         },
         "risks": {
           "type": "string",
@@ -73,7 +90,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "kind", "title", "role", "intro", "detail", "files"],
+        "required": ["id", "kind", "title", "narrative", "files"],
         "properties": {
           "id": {
             "type": "string",
@@ -85,17 +102,9 @@
             "description": "foundation: data/schema/contracts this step's logic depends on. core: the main logic. wiring: integrating that logic with its callers. delicate: a step that carries real risk and deserves the closest reading. tests: test coverage."
           },
           "title": { "type": "string" },
-          "role": {
+          "narrative": {
             "type": "string",
-            "description": "This step's role in the overall change, in one short phrase, e.g. 'Defines the interface the cache must satisfy'."
-          },
-          "intro": {
-            "type": "string",
-            "description": "A short (1-2 sentence) teaser: what this step does and why it comes at this point in the story."
-          },
-          "detail": {
-            "type": "string",
-            "description": "The fuller reviewer-facing explanation: why this change was made this way."
+            "description": "What this step does and why it was done this way, written as connected reasoning for a reviewer who doesn't know this module. Plain text; separate paragraphs with a blank line."
           },
           "files": {
             "type": "array",
@@ -103,7 +112,7 @@
             "items": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["path", "change_type", "why", "confidence", "hunks"],
+              "required": ["path", "change_type", "confidence", "hunks"],
               "properties": {
                 "path": {
                   "type": "string",
@@ -115,7 +124,7 @@
                 },
                 "why": {
                   "type": "string",
-                  "description": "Why this specific file changed this way, explained to a reviewer."
+                  "description": "Why this specific file changed this way, explained to a reviewer. Omit it when the step's narrative already makes that obvious."
                 },
                 "confidence": {
                   "type": "string",

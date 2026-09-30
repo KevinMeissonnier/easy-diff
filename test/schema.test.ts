@@ -18,15 +18,21 @@ function minimalPayload(overrides: Record<string, unknown> = {}) {
       base_sha: 'abc123',
       head_sha: 'def456',
     },
-    overview: { what: 'w', why: 'y', risks: 'r', out_of_scope: 'o', estimated_reading_minutes: 3 },
+    overview: {
+      what: 'w',
+      why: 'y',
+      mental_model: 'm',
+      decisions: [],
+      risks: 'r',
+      out_of_scope: 'o',
+      estimated_reading_minutes: 3,
+    },
     steps: [
       {
         id: 'step-1',
         kind: 'core',
         title: 'a',
-        role: 'r',
-        intro: 'i',
-        detail: 'd',
+        narrative: 'n',
         files: [
           {
             path: 'x.ts',
@@ -95,6 +101,19 @@ test('rejects a step with no files (schema requires at least one)', () => {
 test('rejects a file with no hunks (schema requires at least one)', () => {
   const payload = minimalPayload();
   payload.steps[0].files[0].hunks = [];
+  assert.throws(() => extractAnalysis(JSON.stringify(payload)));
+});
+
+test("accepts a file without a `why`", () => {
+  const payload = minimalPayload();
+  delete (payload.steps[0].files[0] as { why?: string }).why;
+  const analysis = extractAnalysis(JSON.stringify(payload));
+  assert.equal(analysis.steps[0]?.files[0]?.why, undefined);
+});
+
+test('rejects a decision without a reason', () => {
+  const payload = minimalPayload();
+  (payload.overview as { decisions: unknown[] }).decisions = [{ choice: 'c' }];
   assert.throws(() => extractAnalysis(JSON.stringify(payload)));
 });
 

@@ -75,6 +75,32 @@ test('validate-language hook: allows French prose when configured language is Fr
   assert.equal(blocked, false);
 });
 
+test('validate-language hook: checks step narratives and decisions, not just the overview', (t) => {
+  const cwd = withConfig('en');
+  t.after(() => removeTmpRepo(cwd));
+  const frProse = {
+    merge_request: { title: 'Cache' },
+    overview: {
+      decisions: [
+        {
+          choice: "La suppression dans le cache se fait lors de la révocation, pas avec une durée courte.",
+          reason: "Une durée courte réduit la fenêtre sans la fermer, ce qui ne suffit pas pour une révocation.",
+        },
+      ],
+    },
+    steps: [
+      {
+        narrative:
+          "Le cache est consulté avant la base de données. La lecture se fait après le décodage " +
+          'de la signature, pour que les jetons mal signés ne servent jamais de clé.',
+      },
+    ],
+  };
+  const { blocked, stderr } = run({ cwd, last_assistant_message: JSON.stringify(frProse) });
+  assert.equal(blocked, true);
+  assert.match(stderr, /English/);
+});
+
 test('validate-language hook: treats a missing config as English', (t) => {
   const cwd = makeTmpRepo(); // no .claude/easy-diff/config.json at all
   t.after(() => removeTmpRepo(cwd));

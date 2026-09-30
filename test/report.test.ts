@@ -25,15 +25,21 @@ test('render pipeline: diff content comes from git, not from the analysis JSON',
       base_sha: 'abc',
       head_sha: 'def',
     },
-    overview: { what: 'w', why: 'y', risks: 'r', out_of_scope: 'o', estimated_reading_minutes: 1 },
+    overview: {
+      what: 'w',
+      why: 'y',
+      mental_model: 'm',
+      decisions: [],
+      risks: 'r',
+      out_of_scope: 'o',
+      estimated_reading_minutes: 1,
+    },
     steps: [
       {
         id: 'add-bye',
         kind: 'core',
         title: 'Add bye()',
-        role: 'core logic',
-        intro: 'adds a function',
-        detail: 'adds a function',
+        narrative: 'adds a function',
         files: [
           {
             path: 'app.py',

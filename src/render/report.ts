@@ -33,7 +33,7 @@ export interface FileWatchpoint {
 export interface FileWithHunks {
   path: string;
   change_type: Analysis['steps'][number]['files'][number]['change_type'];
-  why: string;
+  why?: string;
   confidence: Analysis['steps'][number]['files'][number]['confidence'];
   churn: { add: number; del: number };
   hunks: RenderedHunk[];
@@ -44,9 +44,7 @@ export interface StepWithHunks {
   id: string;
   kind: Analysis['steps'][number]['kind'];
   title: string;
-  role: string;
-  intro: string;
-  detail: string;
+  narrative: string;
   files: FileWithHunks[];
 }
 
@@ -82,9 +80,7 @@ export function buildReportData(
     id: step.id,
     kind: step.kind,
     title: step.title,
-    role: step.role,
-    intro: step.intro,
-    detail: step.detail,
+    narrative: step.narrative,
     files: step.files.map((file) => {
       const hunks = pickHunks(safeDiff(base, file.path, cwd), file.hunks);
       return {

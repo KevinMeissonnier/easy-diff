@@ -108,8 +108,21 @@ function validateAnalysis(analysis) {
   const overview = analysis.overview;
   at('overview', isObject(overview), 'must be an object');
   if (isObject(overview)) {
-    for (const field of ['what', 'why', 'risks', 'out_of_scope']) {
+    for (const field of ['what', 'why', 'mental_model', 'risks', 'out_of_scope']) {
       at(`overview.${field}`, typeof overview[field] === 'string', 'must be a string');
+    }
+    const decisions = overview.decisions;
+    at('overview.decisions', Array.isArray(decisions), 'must be an array (empty if there are none)');
+    if (Array.isArray(decisions)) {
+      decisions.forEach((decision, i) => {
+        for (const field of ['choice', 'reason']) {
+          at(
+            `overview.decisions[${i}].${field}`,
+            isObject(decision) && typeof decision[field] === 'string',
+            'must be a string'
+          );
+        }
+      });
     }
     at(
       'overview.estimated_reading_minutes',
@@ -131,7 +144,7 @@ function validateStep(step, path, at) {
   at(path, isObject(step), 'must be an object');
   if (!isObject(step)) return;
 
-  for (const field of ['id', 'title', 'role', 'intro', 'detail']) {
+  for (const field of ['id', 'title', 'narrative']) {
     at(`${path}.${field}`, typeof step[field] === 'string', 'must be a string');
   }
   at(`${path}.kind`, ENUMS.kind.includes(step.kind), `must be one of ${ENUMS.kind.join(', ')}`);
@@ -153,7 +166,7 @@ function validateFile(file, path, at) {
     ENUMS.change_type.includes(file.change_type),
     `must be one of ${ENUMS.change_type.join(', ')}`
   );
-  at(`${path}.why`, typeof file.why === 'string', 'must be a string');
+  at(`${path}.why`, file.why === undefined || typeof file.why === 'string', 'must be a string if present');
   at(
     `${path}.confidence`,
     ENUMS.confidence.includes(file.confidence),

@@ -195,10 +195,27 @@ produces them) and line numbers for indicative/labelling purposes only. `report.
 always comes from our own parsing, never from the model's JSON. If all of a file's indexes are
 invalid, all of its actual hunks are shown instead of none.
 
+## Prose fields: connected narrative, plain text
+
+The prose is written for a reviewer who knows the stack but not the module or its business
+domain, and must read top to bottom without needing follow-up questions. A prior version asked
+for terse "field notes" (no transitions, hard sentence caps, `role`/`intro`/`detail` per step and
+a mandatory `why` per file): real-world feedback was that the result read as a pile of
+disconnected facts dense with undefined identifiers. Hence: one `narrative` per step, an
+`overview.mental_model` (how the pieces fit together, concepts before class names) and
+`overview.decisions[]` (`{choice, reason}`) up front, and `file.why` only when the narrative
+doesn't already cover it. The prompt still bans filler and hedging, just not the connectors that
+carry reasoning.
+
+Prose stays **plain text** — the viewer escapes it and only splits paragraphs on blank lines.
+Markdown rendering was considered and deliberately rejected; don't reintroduce it without asking.
+
 ## Validated against real conditions
 
 `generate` was tested end-to-end with `claude -p --json-schema` against a throwaway repo (see
-`test/fixtures/claude-envelope.*.json`, captured from a real invocation). The envelope exposes the
-structured value under `structured_output`. If the format changes in a future Claude Code
+`test/fixtures/claude-envelope.*.json`, captured from a real invocation; their
+`structured_output`/`result` payloads were later migrated by hand when the analysis shape changed,
+the envelope itself is untouched). The envelope exposes the structured value under
+`structured_output`. If the format changes in a future Claude Code
 version, `extractAnalysis` includes the raw output in its error message — inspect and adjust
 `collectJsonCandidates` in `src/lib/schema.ts` accordingly.

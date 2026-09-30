@@ -33,6 +33,15 @@
     }[c]));
   }
 
+  function paragraphs(text, classes) {
+    return String(text)
+      .split(/\n\s*\n/)
+      .map((para) => para.trim())
+      .filter(Boolean)
+      .map((para) => `<p class="m-0 ${classes}">${escapeHtml(para)}</p>`)
+      .join('');
+  }
+
   function basename(p) {
     const parts = String(p).split('/');
     return parts[parts.length - 1];
@@ -269,10 +278,7 @@
         return `
           <li class="grid gap-6 items-baseline px-4 py-5 rounded-lg border border-transparent border-b border-b-divider cursor-pointer hover:bg-neutral-900 hover:border-neutral-800" style="grid-template-columns:${GRID.overviewRow}" data-action="open-step" data-si="${si}">
             <span class="font-mono text-[12px] ${status === 'done' ? 'text-accent-400' : 'text-neutral-600'}">${marker}</span>
-            <span class="min-w-0">
-              <span class="block text-neutral-100 text-[15.5px]">${escapeHtml(step.title)}</span>
-              <span class="block text-neutral-500 text-[13px] mt-0.5 text-pretty">${escapeHtml(step.role)}</span>
-            </span>
+            <span class="min-w-0 text-neutral-100 text-[15.5px] text-pretty">${escapeHtml(step.title)}</span>
             <span class="font-mono text-[12.5px] text-neutral-600">${t.filesCount(n)}</span>
             <span class="text-[12px] text-right ${stateColor}">${stateLabel}</span>
           </li>`;
@@ -300,6 +306,13 @@
             </div>
           </div>
 
+          <section class="mb-16 max-w-[72ch]">
+            <h2 class="text-[17px] font-medium tracking-[0.1em] uppercase text-neutral-400 mb-6">${t.mentalModel}</h2>
+            <div class="flex flex-col gap-4">${paragraphs(o.mental_model, 'text-neutral-200 text-[15px] text-pretty')}</div>
+          </section>
+
+          ${renderDecisions(o.decisions)}
+
           <h2 class="text-[17px] font-medium tracking-[0.1em] uppercase text-neutral-400 mb-8">${t.reviewPath}</h2>
           <ol class="list-none m-0 mb-16 p-0 flex flex-col gap-[2px]">${stepsHtml}</ol>
 
@@ -310,6 +323,24 @@
           </div>
         </div>
       </main>`;
+  }
+
+  function renderDecisions(decisions) {
+    if (!decisions || !decisions.length) return '';
+    const items = decisions
+      .map(
+        (d) => `
+        <li class="border-l-2 border-neutral-800 pl-5">
+          <p class="m-0 text-neutral-100 text-[14.5px] text-pretty">${escapeHtml(d.choice)}</p>
+          <p class="m-0 mt-1 text-neutral-500 text-[13.5px] text-pretty">${escapeHtml(d.reason)}</p>
+        </li>`
+      )
+      .join('');
+    return `
+      <section class="mb-16 max-w-[72ch]">
+        <h2 class="text-[17px] font-medium tracking-[0.1em] uppercase text-neutral-400 mb-6">${t.decisions}</h2>
+        <ul class="list-none m-0 p-0 flex flex-col gap-5">${items}</ul>
+      </section>`;
   }
 
   function renderWatchpoints(points) {
@@ -431,8 +462,7 @@
               <span class="tag tag-outline">${escapeHtml(t.kind[step.kind] || step.kind)}</span>
             </div>
             <h2 class="text-[24px] font-medium leading-[1.2] tracking-[-0.01em] m-0 text-pretty">${escapeHtml(step.title)}</h2>
-            <p class="m-0 text-neutral-300 text-[14.5px] text-pretty">${escapeHtml(step.intro)}</p>
-            <p class="m-0 text-neutral-500 text-[13.5px] text-pretty">${escapeHtml(step.detail)}</p>
+            <div class="flex flex-col gap-4">${paragraphs(step.narrative, 'text-neutral-300 text-[14.5px] text-pretty')}</div>
 
             <div class="text-[11px] tracking-[0.1em] uppercase text-neutral-600 mt-2">${filesHeading}</div>
             <div class="flex flex-col gap-2">${filesHtml}</div>
@@ -456,10 +486,14 @@
           </div>
 
           <div class="p-8 flex flex-col gap-6 animate-rise">
-            <div class="card border-l-2 border-accent">
+            ${
+              file.why
+                ? `<div class="card border-l-2 border-accent">
               <div class="text-[11px] tracking-[0.12em] uppercase text-accent-400 mb-3">${t.whyThisChange}</div>
               <p class="m-0 text-neutral-200 text-[14.5px] text-pretty">${escapeHtml(file.why)}</p>
-            </div>
+            </div>`
+                : ''
+            }
 
             ${renderWatchpoints(file.watchpoints)}
 

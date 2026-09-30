@@ -13,6 +13,17 @@
   "overview": {
     "what": "A Redis cache is placed in front of session token verification. The public contract of TokenService.verify() is unchanged: same signature, same exceptions, same ordering of checks.",
     "why": "Every authenticated request currently makes a Postgres round trip to re-validate a token that was verified milliseconds earlier. At the morning peak this accounts for 40% of queries hitting the database.",
+    "mental_model": "A request's token still goes through the same two checks: its signature is decoded first, then its session is confirmed as still active. Only the second check changes. It now asks the cache first and only falls back to the database on a miss, writing the answer back so the next request finds it.\n\nRevocation is the other half of the change. Revoking a session now removes its cache entry as well as its database row, so a revoked token cannot keep passing the second check through a stale entry.",
+    "decisions": [
+      {
+        "choice": "The cache is described by a three-method Protocol rather than an abstract base class.",
+        "reason": "Tests can pass a plain dict without inheriting anything, and Redis stays a dependency of the infrastructure layer only."
+      },
+      {
+        "choice": "Revocation deletes the cache entry immediately instead of relying on a short cache lifetime.",
+        "reason": "A short lifetime only narrows the window in which a revoked token still works, and a revocation needs that window closed."
+      }
+    ],
     "risks": "A revoked token left in the cache would be accepted as valid. Step 4 handles this; it is the step that deserves the most attention.",
     "out_of_scope": "Permission caching, expired-session purging and the OAuth store migration are untouched.",
     "estimated_reading_minutes": 7
@@ -23,9 +34,7 @@
       "id": "contract",
       "kind": "foundation",
       "title": "A contract before an implementation",
-      "role": "Defines the interface the cache must satisfy",
-      "intro": "Before writing anything Redis-specific I pinned down the minimal contract the auth service needs: read, write with a TTL, delete.",
-      "detail": "Three methods only. Anything absent (pipelines, scan, stats) is deliberately absent so the service cannot come to depend on it.",
+      "narrative": "Before writing anything Redis-specific, this step pins down the minimal contract the auth service needs from a cache: read a value, write it with a lifetime, delete it. Everything else Redis offers (pipelines, scans, stats) is deliberately left out, so the service cannot come to depend on it.",
       "files": [
         {
           "path": "src/cache/base.py",
@@ -43,9 +52,7 @@
       "id": "wiring",
       "kind": "wiring",
       "title": "Wiring the cache in without changing the public contract",
-      "role": "The service consults the cache before the database",
-      "intro": "The cache slots into verify(). Signature, exceptions and check ordering are identical, so an existing caller sees no difference.",
-      "detail": "The cache is injected by the dependency container rather than constructed inside the service — that is what lets the tests in step 6 pass a fake.",
+      "narrative": "The cache slots into verify() without changing anything a caller can observe: the signature, the exceptions and the order of the checks are all identical.\n\nThe service receives the cache from the dependency container instead of building it itself. That is what lets the tests pass a fake, and it also means every request shares one cache instance, and therefore one Redis connection pool, rather than opening a connection each time.",
       "files": [
         {
           "path": "src/auth/token_service.py",
@@ -77,7 +84,6 @@
         {
           "path": "src/api/deps.py",
           "change_type": "modified",
-          "why": "The cache is built once at startup and injected. One instance per request would open a Redis connection per request, cancelling the gain we are after.",
           "confidence": "high",
           "hunks": [
             { "index": 0, "new_start": 12, "new_lines": 13, "old_start": 12, "old_lines": 4 }
@@ -90,9 +96,7 @@
       "id": "invalidation",
       "kind": "delicate",
       "title": "Invalidation on revocation",
-      "role": "The core risk: a revoked token must stop passing",
-      "intro": "This is the step to read most carefully. Without it, revoking a session would leave the token valid until the cache entry expired.",
-      "detail": "I chose immediate deletion over a short TTL. A short TTL narrows the window without closing it, and this needed a guarantee rather than a probability.",
+      "narrative": "This is the step to read most carefully. Without it, revoking a session would leave its token valid until the cache entry expired on its own.\n\nThe entry is therefore deleted as part of the revocation itself, in the same logical operation as the database update. If Redis is unreachable, the whole revocation fails and the caller sees an error, rather than the token quietly staying cached.",
       "files": [
         {
           "path": "src/auth/revocation.py",

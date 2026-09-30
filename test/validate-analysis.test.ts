@@ -47,6 +47,37 @@ test('validate-analysis hook: blocks a missing required field', () => {
   assert.match(stderr, /overview\.risks/);
 });
 
+test('validate-analysis hook: blocks a step without a narrative', () => {
+  const broken = JSON.parse(JSON.stringify(validAnalysis));
+  delete broken.steps[0].narrative;
+  const { blocked, stderr } = run({ last_assistant_message: JSON.stringify(broken) });
+  assert.equal(blocked, true);
+  assert.match(stderr, /steps\[0\]\.narrative/);
+});
+
+test('validate-analysis hook: blocks a missing decisions array', () => {
+  const broken = JSON.parse(JSON.stringify(validAnalysis));
+  delete broken.overview.decisions;
+  const { blocked, stderr } = run({ last_assistant_message: JSON.stringify(broken) });
+  assert.equal(blocked, true);
+  assert.match(stderr, /overview\.decisions/);
+});
+
+test('validate-analysis hook: blocks a decision without a reason', () => {
+  const broken = JSON.parse(JSON.stringify(validAnalysis));
+  broken.overview.decisions = [{ choice: 'c' }];
+  const { blocked, stderr } = run({ last_assistant_message: JSON.stringify(broken) });
+  assert.equal(blocked, true);
+  assert.match(stderr, /overview\.decisions\[0\]\.reason/);
+});
+
+test('validate-analysis hook: allows a file without a why', () => {
+  const analysis = JSON.parse(JSON.stringify(validAnalysis));
+  delete analysis.steps[0].files[0].why;
+  const { blocked } = run({ last_assistant_message: JSON.stringify(analysis) });
+  assert.equal(blocked, false);
+});
+
 test('validate-analysis hook: blocks an invalid enum value', () => {
   const broken = JSON.parse(JSON.stringify(validAnalysis));
   broken.steps[0].kind = 'not-a-real-kind';
