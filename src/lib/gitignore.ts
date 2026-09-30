@@ -1,14 +1,14 @@
 import fs from 'node:fs';
 
-export type GitignoreStatus = 'added' | 'present';
-
-export function ensureGitignoreEntry(gitignorePath: string, entry: string): GitignoreStatus {
+/** Returns the entries that were missing and have been appended. */
+export function ensureGitignoreEntries(gitignorePath: string, entries: string[]): string[] {
   const existing = fs.existsSync(gitignorePath) ? fs.readFileSync(gitignorePath, 'utf8') : '';
-  const alreadyPresent = existing.split('\n').some((line) => line.trim() === entry);
-  if (alreadyPresent) return 'present';
+  const present = new Set(existing.split('\n').map((line) => line.trim()));
+  const missing = entries.filter((entry) => !present.has(entry));
+  if (missing.length === 0) return [];
 
   const separator = existing.length === 0 || existing.endsWith('\n') ? '' : '\n';
-  const block = `${separator}\n# easy-diff generated output\n${entry}\n`;
+  const block = `${separator}\n# easy-diff\n${missing.join('\n')}\n`;
   fs.writeFileSync(gitignorePath, existing + block);
-  return 'added';
+  return missing;
 }

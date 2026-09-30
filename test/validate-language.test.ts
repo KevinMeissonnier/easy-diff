@@ -4,7 +4,6 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
-import { makeTmpRepo, removeTmpRepo } from './helpers/tmp-repo.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const hook = path.join(here, '..', 'templates', 'hooks', 'validate-language.cjs');
@@ -12,21 +11,13 @@ const validAnalysis = JSON.parse(
   fs.readFileSync(path.join(here, '..', 'templates', 'analysis.example.json'), 'utf8')
 );
 
-function withConfig(language: string | undefined): string {
-  const cwd = makeTmpRepo();
-  if (language !== undefined) {
-    fs.mkdirSync(path.join(cwd, '.claude', 'easy-diff'), { recursive: true });
-    fs.writeFileSync(
-      path.join(cwd, '.claude', 'easy-diff', 'config.json'),
-      JSON.stringify({ language })
-    );
-  }
-  return cwd;
-}
-
-function run(input: Record<string, unknown>): { blocked: boolean; stderr: string } {
+function run(
+  input: Record<string, unknown>,
+  language?: string
+): { blocked: boolean; stderr: string } {
+  const args = language === undefined ? [hook] : [hook, language];
   try {
-    const out = execFileSync('node', [hook], { input: JSON.stringify(input), encoding: 'utf8' });
+    const out = execFileSync('node', args, { input: JSON.stringify(input), encoding: 'utf8' });
     return { blocked: false, stderr: out };
   } catch (err) {
     const e = err as { status: number; stderr: string };
@@ -35,25 +26,19 @@ function run(input: Record<string, unknown>): { blocked: boolean; stderr: string
   }
 }
 
-test('validate-language hook: allows English prose when configured language is English (default)', (t) => {
-  const cwd = withConfig(undefined);
-  t.after(() => removeTmpRepo(cwd));
-  const { blocked } = run({ cwd, last_assistant_message: JSON.stringify(validAnalysis) });
+test('validate-language hook: allows English prose when no language is passed (defaults to English)', () => {
+  const { blocked } = run({ last_assistant_message: JSON.stringify(validAnalysis) });
   assert.equal(blocked, false);
 });
 
-test('validate-language hook: blocks English prose when configured language is French', (t) => {
-  const cwd = withConfig('fr');
-  t.after(() => removeTmpRepo(cwd));
-  const { blocked, stderr } = run({ cwd, last_assistant_message: JSON.stringify(validAnalysis) });
+test('validate-language hook: blocks English prose when the expected language is French', () => {
+  const { blocked, stderr } = run({ last_assistant_message: JSON.stringify(validAnalysis) }, 'fr');
   assert.equal(blocked, true);
   assert.match(stderr, /language mismatch/);
   assert.match(stderr, /French/);
 });
 
-test('validate-language hook: allows French prose when configured language is French', (t) => {
-  const cwd = withConfig('fr');
-  t.after(() => removeTmpRepo(cwd));
+test('validate-language hook: allows French prose when the expected language is French', () => {
   const frAnalysis = {
     merge_request: { title: 'Ajoute un cache pour les jetons de session' },
     overview: {
@@ -71,13 +56,11 @@ test('validate-language hook: allows French prose when configured language is Fr
     },
     steps: [],
   };
-  const { blocked } = run({ cwd, last_assistant_message: JSON.stringify(frAnalysis) });
+  const { blocked } = run({ last_assistant_message: JSON.stringify(frAnalysis) }, 'fr');
   assert.equal(blocked, false);
 });
 
-test('validate-language hook: checks step narratives and decisions, not just the overview', (t) => {
-  const cwd = withConfig('en');
-  t.after(() => removeTmpRepo(cwd));
+test('validate-language hook: checks step narratives and decisions, not just the overview', () => {
   const frProse = {
     merge_request: { title: 'Cache' },
     overview: {
@@ -96,45 +79,31 @@ test('validate-language hook: checks step narratives and decisions, not just the
       },
     ],
   };
-  const { blocked, stderr } = run({ cwd, last_assistant_message: JSON.stringify(frProse) });
+  const { blocked, stderr } = run({ last_assistant_message: JSON.stringify(frProse) }, 'en');
   assert.equal(blocked, true);
   assert.match(stderr, /English/);
 });
 
-test('validate-language hook: treats a missing config as English', (t) => {
-  const cwd = makeTmpRepo(); // no .claude/easy-diff/config.json at all
-  t.after(() => removeTmpRepo(cwd));
-  const { blocked } = run({ cwd, last_assistant_message: JSON.stringify(validAnalysis) });
+test('validate-language hook: treats an unsupported language argument as English', () => {
+  const { blocked } = run({ last_assistant_message: JSON.stringify(validAnalysis) }, 'de');
   assert.equal(blocked, false);
 });
 
-test('validate-language hook: treats an invalid config language as English', (t) => {
-  const cwd = withConfig('de');
-  t.after(() => removeTmpRepo(cwd));
-  const { blocked } = run({ cwd, last_assistant_message: JSON.stringify(validAnalysis) });
-  assert.equal(blocked, false);
-});
-
-test('validate-language hook: does not block on too little text to judge', (t) => {
-  const cwd = withConfig('fr');
-  t.after(() => removeTmpRepo(cwd));
+test('validate-language hook: does not block on too little text to judge', () => {
   const tiny = {
     merge_request: { title: 'Fix' },
     overview: { what: 'Redis cache.', why: 'Speed.', risks: 'None.', out_of_scope: 'N/A.' },
     steps: [],
   };
-  const { blocked } = run({ cwd, last_assistant_message: JSON.stringify(tiny) });
+  const { blocked } = run({ last_assistant_message: JSON.stringify(tiny) }, 'fr');
   assert.equal(blocked, false);
 });
 
-test('validate-language hook: does not loop forever (stop_hook_active allows through)', (t) => {
-  const cwd = withConfig('fr');
-  t.after(() => removeTmpRepo(cwd));
-  const { blocked } = run({
-    cwd,
-    last_assistant_message: JSON.stringify(validAnalysis),
-    stop_hook_active: true,
-  });
+test('validate-language hook: does not loop forever (stop_hook_active allows through)', () => {
+  const { blocked } = run(
+    { last_assistant_message: JSON.stringify(validAnalysis), stop_hook_active: true },
+    'fr'
+  );
   assert.equal(blocked, false);
 });
 
@@ -143,9 +112,7 @@ test('validate-language hook: fails open on unparseable hook input', () => {
   assert.equal(out, '');
 });
 
-test('validate-language hook: fails open on non-JSON assistant output', (t) => {
-  const cwd = withConfig('fr');
-  t.after(() => removeTmpRepo(cwd));
-  const { blocked } = run({ cwd, last_assistant_message: 'not json at all' });
+test('validate-language hook: fails open on non-JSON assistant output', () => {
+  const { blocked } = run({ last_assistant_message: 'not json at all' }, 'fr');
   assert.equal(blocked, false);
 });

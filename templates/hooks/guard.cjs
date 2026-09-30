@@ -4,9 +4,9 @@
 /**
  * PreToolUse guard for easy-diff's headless analysis runs.
  *
- * This hook is only ever active when `easy-diff generate` passes
- * `.claude/easy-diff/settings.json` via `claude --settings` — it is NOT part of this
- * repo's default Claude Code settings and never runs during normal interactive sessions.
+ * This hook is only ever active when `easy-diff generate` registers it via
+ * `claude --settings` (see buildSettings in src/lib/claude-runner.ts) — it is never part of
+ * a repo's Claude Code settings and never runs during normal interactive sessions.
  *
  * It is defense-in-depth on top of the --allowedTools/--disallowedTools flags
  * `easy-diff generate` already passes: even if a diff's content tried to prompt-inject

@@ -2,13 +2,35 @@
   "name": "easy-diff",
   "version": "0.1.0",
   "description": "Turn a git diff into a narrated, step-by-step review — as if an agent were presenting its own work, instead of a raw diff you have to reverse-engineer.",
+  "keywords": [
+    "code-review",
+    "review",
+    "git",
+    "diff",
+    "claude",
+    "claude-code",
+    "llm",
+    "cli"
+  ],
+  "license": "MIT",
+  "author": "Kevin Meissonnier",
+  "homepage": "https://github.com/KevinMeissonnier/easy-diff#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KevinMeissonnier/easy-diff.git"
+  },
+  "bugs": {
+    "url": "https://github.com/KevinMeissonnier/easy-diff/issues"
+  },
   "type": "module",
   "bin": {
     "easy-diff": "dist/cli.js"
   },
   "files": [
     "dist",
-    "templates"
+    "templates",
+    "!templates/analysis.example.json",
+    "!templates/report/tailwind.css"
   ],
   "engines": {
     "node": ">=18.17"
@@ -18,7 +40,9 @@
     "build:css": "tailwindcss -i templates/report/tailwind.css -o templates/report/style.css --minify",
     "dev": "tsx src/cli.ts",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test test/**/*.test.ts"
+    "test": "tsx --test test/**/*.test.ts",
+    "prepack": "npm run build",
+    "prepublishOnly": "npm test"
   },
   "dependencies": {
     "commander": "^12.1.0",

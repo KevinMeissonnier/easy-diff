@@ -96,22 +96,23 @@ diff to reverse-engineer.
 ## Structure
 
 - `src/cli.ts` — CLI entry point (commander), `init` and `generate` subcommands.
-- `src/commands/init.ts` — scaffolds `.claude/commands/`, `.claude/easy-diff/` (isolated settings
-  + hook + schema) and the `.gitignore` entry in the target repo. Pure file I/O, no network.
+- `src/commands/init.ts` — writes `config-easy-diff.json` and the `.gitignore` entries in the
+  target repo. Pure file I/O, no network. Optional: `generate` defaults to English without it.
 - `src/commands/generate.ts` — orchestrates the analysis: detects the base, invokes headless
   Claude Code, validates the output, writes `easy-diff/data/analysis.json`, triggers the HTML
   render.
-- `src/lib/claude-runner.ts` — headless `claude -p` invocation. `ALLOWED_TOOLS`/`DISALLOWED_TOOLS`
-  here must stay in sync with `templates/commands/easy-diff-report.md` (`allowed-tools`
-  frontmatter) — one pre-approves without prompting, the other is the real barrier.
+- `src/lib/claude-runner.ts` — headless `claude -p` invocation. Builds the prompt from
+  `templates/analysis-prompt.md` (`{{base}}`/`{{language}}` filled in) and the `--settings` JSON
+  registering the hooks by absolute path into the installed package.
 - `src/lib/schema.ts` — zod schema for the analysis + `extractAnalysis`, which tries several
   extraction points in Claude Code's `--output-format json`/`--json-schema` output (the envelope
   and its `structured_output` field are confirmed against a real invocation, see
   `test/fixtures/`).
 - `src/render/report.ts` — builds the report data (the LLM's JSON + the exact per-file diffs,
   recomputed via `git diff`, never provided by the LLM) and writes the static HTML/CSS/JS.
-- `templates/` — everything scaffolded as-is into a target repo by `init`, plus the HTML/CSS/JS
-  viewer copied by `render/report.ts`. These are not TypeScript sources.
+- `templates/` — the prompt, JSON schema and hooks used by `generate` straight from the installed
+  package, plus the HTML/CSS/JS viewer copied by `render/report.ts`. These are not TypeScript
+  sources.
 
 ## Design decisions not to re-discuss without reason
 
@@ -130,10 +131,13 @@ diff to reverse-engineer.
   steps, validated by `templates/analysis.schema.json`). The rendering and the displayed hunks
   are computed deterministically by our code (direct `git diff`), not by the model — this avoids
   layout inconsistencies and diff hallucinations.
-- **`.claude/easy-diff/settings.json` is never the repo's default config.** It's only loaded via
-  `claude --settings <this file>` during an `easy-diff generate`. Never merge it into the target
-  repo's `.claude/settings.json` — that would permanently break normal interactive Claude Code
-  sessions (Write/Edit/Bash would be blocked there).
+- **Nothing technical is copied into the target repo.** The prompt, schema and hooks are read
+  from the installed package on every `generate`, and the hooks are registered through an inline
+  `claude --settings '<json>'` built by `buildSettings`. A prior version scaffolded them into
+  `.claude/` with `init`: every CLI upgrade then silently desynced them from the zod schema, and
+  the mismatch only surfaced after a full (slow, paid) analysis. The only per-repo file is
+  `config-easy-diff.json`. Never write these settings into a repo's `.claude/settings.json` —
+  that would block Write/Edit/Bash in normal interactive Claude Code sessions.
 - **`templates/hooks/guard.cjs` is defense in depth**, not the only barrier — the
   `--allowedTools`/`--disallowedTools`/`--permission-mode plan` flags in `claude-runner.ts` are
   the first line. The hook must stay fail-closed (deny by default) on anything it doesn't
@@ -142,24 +146,26 @@ diff to reverse-engineer.
   `--json-schema` passed to `claude` and of the zod validation in `src/lib/schema.ts`: a `Stop`
   hook that checks the shape of the produced JSON before the model's turn even ends, and blocks
   (with details of what's wrong) instead of letting `generate` fail afterward. Vanilla JS with no
-  dependency, like `guard.cjs` — it runs via plain `node` in the target repo.
-- **The report language is a repo setting (`.claude/easy-diff/config.json`), not a `generate`
-  flag.** `easy-diff init [en|fr]` writes it (default `en`); `templates/commands/
-  easy-diff-report.md` asks the model to read it and write all prose fields in that language.
-  `templates/hooks/validate-language.cjs` is a second `Stop` hook, independent of
-  `validate-analysis.cjs`, which heuristically checks (FR/EN stopword frequency, not exact
-  detection) that the model complied, and blocks with a rewrite request otherwise.
-- **`config.json` has two distinct language fields, not to be confused.** `language` (above) is
+  dependency, like `guard.cjs` — it runs via plain `node`, with the target repo as cwd.
+- **The report language is a config setting (`config-easy-diff.json` at the repo root,
+  gitignored so each developer picks their own), not a `generate` flag.** `easy-diff init
+  [en|fr]` writes it (default `en`). `generate` reads it and injects it into the prompt, and
+  passes it as an argument to `templates/hooks/validate-language.cjs` — a second `Stop` hook,
+  independent of `validate-analysis.cjs`, which heuristically checks (FR/EN stopword frequency,
+  not exact detection) that the model complied, and blocks with a rewrite request otherwise.
+  Only `src/lib/config.ts` knows where the config lives.
+- **The config has two distinct language fields, not to be confused.** `language` (above) is
   the language the LLM writes the analysis prose in — it's a prompt setting, checked by
   `validate-language.cjs`. `reportLanguage` (default `en`) is the language of the HTML *viewer*'s
   static labels (buttons, titles — `templates/report/i18n.js`, loaded by `index.html` before
-  `app.js`): it's not model output, `generate.ts` reads it directly via `readReportLanguage`
+  `app.js`): it's not model output, `generate.ts` reads it via `readConfig`
   (`src/lib/config.ts`) and embeds it in `ReportData.reportLanguage`; nothing checks its
-  compliance since no LLM is involved. No CLI flag for now — edit `config.json` by hand.
+  compliance since no LLM is involved. No CLI flag for now — edit the file by hand.
 - **Paths and bundling**: no bundler (tsup/esbuild) for now — build via plain `tsc`, which
   preserves the `src/` → `dist/` tree structure, on which `src/lib/paths.ts` depends (computing
   `PACKAGE_ROOT` relative to its own location on disk). Introducing a bundler would require
-  revisiting this computation (see the comment in `paths.ts`).
+  revisiting this computation (see the comment in `paths.ts`). The same holds once installed
+  from npm: `package.json` `files` ships `dist/` and the runtime `templates/`, side by side.
 
 ## Commands
 
@@ -168,6 +174,7 @@ npm install
 npm run typecheck   # tsc --noEmit
 npm run build        # tsc + chmod +x dist/cli.js
 npm run dev -- init   # runs from source via tsx, no build needed
+npm pack              # builds (prepack) and produces the tarball `npm publish` would upload
 ```
 
 ## Rich analysis format (MR metadata, targeted hunks, confidence, watchpoints)
@@ -219,3 +226,8 @@ the envelope itself is untouched). The envelope exposes the structured value und
 `structured_output`. If the format changes in a future Claude Code
 version, `extractAnalysis` includes the raw output in its error message — inspect and adjust
 `collectJsonCandidates` in `src/lib/schema.ts` accordingly.
+
+The package-owned flow (prompt passed to `-p`, hooks registered through inline `--settings`
+JSON) was validated the same way from a global install of the `npm pack` tarball: the analysis
+succeeded, and a probe run confirmed both the guard (denied a Bash command `--allowedTools`
+permitted) and the `Stop` hooks are active.
