@@ -214,6 +214,13 @@ disconnected facts dense with undefined identifiers. Hence: one `narrative` per 
 doesn't already cover it. The prompt still bans filler and hedging, just not the connectors that
 carry reasoning.
 
+That version then overshot the other way: with only qualitative guidance ("a short paragraph
+each"), reports came out too long. The prompt now gives per-field word budgets as ceilings,
+which cap volume without asking for terse, unconnected sentences. Claude Code has no CLI flag
+for output length (`--effort` changes how much the model explores, not how much it writes), so
+the prompt is the lever. `overview.out_of_scope` was dropped (the viewer never displayed it) and
+`overview.risks` may be an empty string, in which case its card is hidden.
+
 Prose stays **plain text** — the viewer escapes it and only splits paragraphs on blank lines.
 Markdown rendering was considered and deliberately rejected; don't reintroduce it without asking.
 

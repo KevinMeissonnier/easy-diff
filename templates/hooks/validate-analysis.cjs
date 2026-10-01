@@ -108,7 +108,7 @@ function validateAnalysis(analysis) {
   const overview = analysis.overview;
   at('overview', isObject(overview), 'must be an object');
   if (isObject(overview)) {
-    for (const field of ['what', 'why', 'mental_model', 'risks', 'out_of_scope']) {
+    for (const field of ['what', 'why', 'mental_model', 'risks']) {
       at(`overview.${field}`, typeof overview[field] === 'string', 'must be a string');
     }
     const decisions = overview.decisions;

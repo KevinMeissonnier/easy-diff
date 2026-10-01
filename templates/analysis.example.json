@@ -25,7 +25,6 @@
       }
     ],
     "risks": "A revoked token left in the cache would be accepted as valid. Step 4 handles this; it is the step that deserves the most attention.",
-    "out_of_scope": "Permission caching, expired-session purging and the OAuth store migration are untouched.",
     "estimated_reading_minutes": 7
   },
 

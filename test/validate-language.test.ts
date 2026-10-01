@@ -52,7 +52,6 @@ test('validate-language hook: allows French prose when the expected language is 
         "pour revalider un jeton qui vient d'être vérifié quelques millisecondes plus tôt, ce qui " +
         'pèse lourdement sur les performances aux heures de pointe et sur la charge globale.',
       risks: "Un jeton révoqué laissé dans le cache serait accepté comme valide, sans cette étape.",
-      out_of_scope: "La mise en cache des permissions et la purge des sessions expirées ne sont pas concernées.",
     },
     steps: [],
   };
@@ -92,7 +91,7 @@ test('validate-language hook: treats an unsupported language argument as English
 test('validate-language hook: does not block on too little text to judge', () => {
   const tiny = {
     merge_request: { title: 'Fix' },
-    overview: { what: 'Redis cache.', why: 'Speed.', risks: 'None.', out_of_scope: 'N/A.' },
+    overview: { what: 'Redis cache.', why: 'Speed.', risks: 'None.' },
     steps: [],
   };
   const { blocked } = run({ last_assistant_message: JSON.stringify(tiny) }, 'fr');

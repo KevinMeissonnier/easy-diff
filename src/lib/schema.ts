@@ -56,7 +56,6 @@ const Overview = z.object({
   mental_model: z.string(),
   decisions: z.array(Decision),
   risks: z.string(),
-  out_of_scope: z.string(),
   estimated_reading_minutes: z.number().int().positive(),
 });
 

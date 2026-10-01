@@ -110,7 +110,6 @@ function collectProseText(analysis) {
       }
     }
     push(analysis.overview.risks);
-    push(analysis.overview.out_of_scope);
   }
   if (Array.isArray(analysis.steps)) {
     for (const step of analysis.steps) {
