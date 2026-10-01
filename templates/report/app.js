@@ -288,7 +288,7 @@
     return `
       <main class="flex-1 overflow-auto">
         <div class="max-w-[1080px] mx-auto pt-18 px-12 pb-24 animate-rise">
-          <h1 class="text-[38px] font-medium leading-[1.14] tracking-[-0.02em] mb-4 max-w-[20ch] text-pretty">${escapeHtml(mr.title)}</h1>
+          <h1 class="text-[38px] font-medium leading-[1.14] tracking-[-0.02em] mb-4 text-pretty">${escapeHtml(mr.title)}</h1>
           <div class="font-mono text-[12px] text-neutral-600 mb-12">${escapeHtml(mr.source_branch)} → ${escapeHtml(mr.target_branch)} · ${m.commits} commit${m.commits === 1 ? '' : 's'} · ${t.filesCount(m.files_changed)} · +${m.insertions} −${m.deletions}</div>
 
           <div class="grid gap-6 mb-16" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
