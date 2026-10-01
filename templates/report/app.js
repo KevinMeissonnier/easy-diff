@@ -288,7 +288,7 @@
     return `
       <main class="flex-1 overflow-auto">
         <div class="max-w-[1080px] mx-auto pt-18 px-12 pb-24 animate-rise">
-          <h1 class="text-[38px] font-medium leading-[1.14] tracking-[-0.02em] mb-4 max-w-[20ch] text-pretty">${escapeHtml(mr.title)}</h1>
+          <h1 class="text-[38px] font-medium leading-[1.14] tracking-[-0.02em] mb-4 text-pretty">${escapeHtml(mr.title)}</h1>
           <div class="font-mono text-[12px] text-neutral-600 mb-12">${escapeHtml(mr.source_branch)} → ${escapeHtml(mr.target_branch)} · ${m.commits} commit${m.commits === 1 ? '' : 's'} · ${t.filesCount(m.files_changed)} · +${m.insertions} −${m.deletions}</div>
 
           <div class="grid gap-6 mb-16" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
@@ -306,7 +306,7 @@
             </div>
           </div>
 
-          <section class="mb-16 max-w-[72ch]">
+          <section class="mb-16">
             <h2 class="text-[17px] font-medium tracking-[0.1em] uppercase text-neutral-400 mb-6">${t.mentalModel}</h2>
             <div class="flex flex-col gap-4">${paragraphs(o.mental_model, 'text-neutral-200 text-[15px] text-pretty')}</div>
           </section>
@@ -337,7 +337,7 @@
       )
       .join('');
     return `
-      <section class="mb-16 max-w-[72ch]">
+      <section class="mb-16">
         <h2 class="text-[17px] font-medium tracking-[0.1em] uppercase text-neutral-400 mb-6">${t.decisions}</h2>
         <ul class="list-none m-0 p-0 flex flex-col gap-5">${items}</ul>
       </section>`;
