@@ -1,5 +1,5 @@
 {
-  "name": "easy-diff",
+  "name": "@kevinmeissonnier/easy-diff",
   "version": "0.1.0",
   "description": "Turn a git diff into a narrated, step-by-step review — as if an agent were presenting its own work, instead of a raw diff you have to reverse-engineer.",
   "keywords": [
@@ -34,6 +34,9 @@
   ],
   "engines": {
     "node": ">=18.17"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.build.json && chmod +x dist/cli.js && npm run build:css",
