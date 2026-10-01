@@ -31,7 +31,6 @@ test('render pipeline: diff content comes from git, not from the analysis JSON',
       mental_model: 'm',
       decisions: [],
       risks: 'r',
-      out_of_scope: 'o',
       estimated_reading_minutes: 1,
     },
     steps: [

@@ -24,7 +24,6 @@ function minimalPayload(overrides: Record<string, unknown> = {}) {
       mental_model: 'm',
       decisions: [],
       risks: 'r',
-      out_of_scope: 'o',
       estimated_reading_minutes: 3,
     },
     steps: [

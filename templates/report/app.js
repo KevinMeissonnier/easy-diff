@@ -300,10 +300,11 @@
               <div class="text-[11px] tracking-[0.12em] uppercase text-accent-400 mb-4">${t.why}</div>
               <p class="m-0 text-neutral-200 text-[14.5px] text-pretty">${escapeHtml(o.why)}</p>
             </div>
+            ${o.risks.trim() ? `
             <div class="card">
               <div class="text-[11px] tracking-[0.12em] uppercase text-neutral-600 mb-4">${t.risks}</div>
               <p class="m-0 text-neutral-200 text-[14.5px] text-pretty">${escapeHtml(o.risks)}</p>
-            </div>
+            </div>` : ''}
           </div>
 
           <section class="mb-16">

@@ -42,7 +42,7 @@
     "overview": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["what", "why", "mental_model", "decisions", "risks", "out_of_scope", "estimated_reading_minutes"],
+      "required": ["what", "why", "mental_model", "decisions", "risks", "estimated_reading_minutes"],
       "properties": {
         "what": {
           "type": "string",
@@ -71,11 +71,7 @@
         },
         "risks": {
           "type": "string",
-          "description": "The main risk or trade-off a reviewer should keep in mind overall. Say so explicitly if there isn't one."
-        },
-        "out_of_scope": {
-          "type": "string",
-          "description": "What this change deliberately does not touch, to set the reviewer's expectations. Say so explicitly if nothing notable is out of scope."
+          "description": "The main risk or trade-off a reviewer should keep in mind overall. An empty string if there is no real one."
         },
         "estimated_reading_minutes": {
           "type": "integer",

@@ -50,9 +50,9 @@ Base branch: `{{base}}`.
    rather than force one.
 9. Write the overview *first*, before the steps: `what` changed (plain language, no code), `why`
    (the problem or goal), `mental_model` (how the pieces fit together), `decisions` (the choices
-   a reviewer would question — an empty array if there are none), `risks` (the main thing to keep
-   in mind — say explicitly if there truly isn't one), and `out_of_scope` (what this deliberately
-   doesn't touch). See "The mental model" and "Decisions" below.
+   a reviewer would question — an empty array if there are none), and `risks` (the main thing to
+   keep in mind — an empty string if there is no real one, rather than a sentence saying so). See
+   "The mental model" and "Decisions" below.
 
 ## Writing style
 
@@ -76,13 +76,19 @@ the change without needing to ask you anything.
 - **Plain text only.** No markdown — no `**`, no backticks, no headings, no bullet characters:
   every field is displayed verbatim. The only structure available is the paragraph: separate
   paragraphs with a blank line (`\n\n`), one idea per paragraph.
-- **Length follows need.** Say what the reader needs, then stop; never pad. As a guide: `what`,
-  `why`, `risks` and `out_of_scope` are a short paragraph each; `mental_model` one or two
-  paragraphs; a step's `narrative` usually one to three short paragraphs, more for a `delicate`
-  step since that is where the real risk is; a decision's `reason` one or two sentences; a
-  watchpoint `note` one short sentence.
-- **Say each thing once.** A choice explained in `decisions` doesn't need re-arguing in a step's
-  narrative — a few words pointing back to it are enough. A file's `why` must not restate the
+- **Stay within the word budgets.** They are ceilings, not targets: say what the reader needs,
+  then stop, and a small change should land well under them.
+  - `what`, `why`, `risks`: 40 words each.
+  - `mental_model`: 80 words — a single sentence if the change is too small to have a map.
+  - A decision: 15 words for `choice`, 35 for `reason`.
+  - A step's `narrative`: 100 words, up to 160 for a `delicate` step since that is where the
+    real risk is.
+  - A file's `why`: 25 words. A watchpoint `note`: 20 words.
+  Cut by dropping what the reader can see in the diff or infer from another field, never by
+  dropping the connecting words that carry the reasoning.
+- **Say each thing once.** `what` summarizes the change as a whole and doesn't walk through the
+  steps; that is the steps' job. A choice explained in `decisions` doesn't need re-arguing in a
+  step's narrative — a few words pointing back to it are enough. A file's `why` must not restate the
   narrative; omit it instead.
 
 Examples (in a step's `narrative`, but the tone applies everywhere):
