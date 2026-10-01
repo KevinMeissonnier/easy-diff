@@ -4,9 +4,9 @@
 /**
  * Stop hook for easy-diff's headless analysis runs.
  *
- * Like guard.cjs, this is only ever active when `easy-diff generate` passes
- * `.claude/easy-diff/settings.json` via `claude --settings` — it is NOT part of this
- * repo's default Claude Code settings and never runs during normal interactive sessions.
+ * Like guard.cjs, this is only ever active when `easy-diff generate` registers it via
+ * `claude --settings` — it is never part of a repo's Claude Code settings and never runs
+ * during normal interactive sessions.
  *
  * `easy-diff generate` already constrains the model's output shape via `--json-schema`
  * and re-validates it with zod once the process exits (see src/lib/schema.ts). This hook

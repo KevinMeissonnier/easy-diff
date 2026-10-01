@@ -5,25 +5,22 @@
  * Stop hook for easy-diff's headless analysis runs.
  *
  * Like guard.cjs and validate-analysis.cjs, this is only ever active when `easy-diff
- * generate` passes `.claude/easy-diff/settings.json` via `claude --settings` — it is NOT
- * part of this repo's default Claude Code settings and never runs during normal
- * interactive sessions.
+ * generate` registers it via `claude --settings` — it is never part of a repo's Claude Code
+ * settings and never runs during normal interactive sessions.
  *
  * This is an independent layer alongside validate-analysis.cjs: that hook checks the
- * JSON's *shape*, this one checks that its prose was actually written in the language
- * configured in `.claude/easy-diff/config.json` (`language`, "en" or "fr", default "en")
- * — the report prompt asks for this, but nothing stops the model from ignoring it, so this
- * blocks the stop and asks for a rewrite if the report reads as the wrong language.
+ * JSON's *shape*, this one checks that its prose was actually written in the expected
+ * language, passed as the first argument ("en" or "fr", default "en") by `easy-diff
+ * generate` from the repo's config — the prompt asks for this, but nothing stops the model
+ * from ignoring it, so this blocks the stop and asks for a rewrite if the report reads as
+ * the wrong language.
  *
  * Detection is a simple stopword-frequency heuristic, not real language detection —
  * dependency-free vanilla JS on purpose, like the other hooks here. It only acts once
  * there is enough signal (MIN_SIGNAL matches either way) to avoid false positives on
- * very short text, and it never blocks on a missing/invalid config or unparseable
- * output — that is validate-analysis.cjs's job.
+ * very short text, and it never blocks on unparseable output — that is
+ * validate-analysis.cjs's job.
  */
-
-const fs = require('node:fs');
-const path = require('node:path');
 
 const SUPPORTED_LANGUAGES = ['en', 'fr'];
 const DEFAULT_LANGUAGE = 'en';
@@ -72,8 +69,7 @@ readStdin()
       return allow();
     }
 
-    const cwd = input.cwd || process.cwd();
-    const expected = readConfiguredLanguage(cwd);
+    const expected = SUPPORTED_LANGUAGES.includes(process.argv[2]) ? process.argv[2] : DEFAULT_LANGUAGE;
     const texts = collectProseText(analysis);
     if (texts.length === 0) {
       return allow();
@@ -83,7 +79,7 @@ readStdin()
     if (mismatch) {
       return block(
         `easy-diff-guard: language mismatch — ${mismatch}. Rewrite every prose field in ` +
-          `${languageName(expected)} (per .claude/easy-diff/config.json) and respond again ` +
+          `${languageName(expected)} and respond again ` +
           `with the full structured data.`
       );
     }
@@ -91,19 +87,6 @@ readStdin()
     return allow();
   })
   .catch(() => allow());
-
-function readConfiguredLanguage(cwd) {
-  try {
-    const raw = fs.readFileSync(path.join(cwd, '.claude', 'easy-diff', 'config.json'), 'utf8');
-    const config = JSON.parse(raw);
-    if (isObject(config) && SUPPORTED_LANGUAGES.includes(config.language)) {
-      return config.language;
-    }
-  } catch {
-    // Missing/unreadable/invalid config: fall back to the default language.
-  }
-  return DEFAULT_LANGUAGE;
-}
 
 /** Every prose field a reviewer actually reads — not ids, paths, enums, or line numbers. */
 function collectProseText(analysis) {

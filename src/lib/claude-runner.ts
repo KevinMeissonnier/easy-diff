@@ -1,16 +1,16 @@
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
+import path from 'node:path';
 import { promisify } from 'node:util';
+import type { Language } from './config.js';
+import { HOOKS_DIR, PROMPT_FILE, SCHEMA_FILE } from './paths.js';
 
 const execFileAsync = promisify(execFile);
 
-// Kept in sync with templates/commands/easy-diff-report.md's own `allowed-tools`
-// frontmatter — that grants the tools without prompting, this is the hard boundary.
-//
-// Do NOT add --restricted/--tools here: verified against a live invocation that it makes
-// Claude Code fail to resolve custom slash commands at all ("Unknown command:
-// /easy-diff-report"), presumably because it tears down the mechanism slash commands rely
-// on. --allowedTools/--disallowedTools + --permission-mode plan is what actually works.
+// --restricted/--tools were ruled out back when the prompt ran as a custom slash command:
+// they made Claude Code fail to resolve it ("Unknown command: /easy-diff-report"). The
+// prompt is now passed straight to -p, so that no longer applies, but it hasn't been
+// re-tested — --allowedTools/--disallowedTools + --permission-mode plan is what's verified.
 const ALLOWED_TOOLS = [
   'Read',
   'Grep',
@@ -27,28 +27,56 @@ const ALLOWED_TOOLS = [
 
 const DISALLOWED_TOOLS = ['Write', 'Edit', 'NotebookEdit'];
 
+const LANGUAGE_NAMES: Record<Language, string> = { en: 'English', fr: 'French' };
+
 export interface RunAnalysisOptions {
   cwd: string;
   base: string;
-  settingsFile: string;
-  schemaFile: string;
+  language: Language;
+}
+
+export function buildPrompt(base: string, language: Language): string {
+  return fs
+    .readFileSync(PROMPT_FILE, 'utf8')
+    .replaceAll('{{base}}', base)
+    .replaceAll('{{language}}', LANGUAGE_NAMES[language]);
 }
 
 /**
- * Runs `/easy-diff-report <base>` headlessly, scoped to this single invocation only:
- * `--settings` and the tool flags below never touch the repo's default Claude Code
- * config, so none of this affects normal interactive sessions.
+ * Hook paths point into the installed package, so upgrading easy-diff upgrades them too —
+ * nothing is copied into the target repo that could drift out of sync with this CLI.
+ */
+export function buildSettings(language: Language): string {
+  const hook = (file: string, ...args: string[]) => ({
+    type: 'command',
+    command: ['node', JSON.stringify(path.join(HOOKS_DIR, file)), ...args].join(' '),
+  });
+  return JSON.stringify({
+    hooks: {
+      PreToolUse: [
+        { matcher: 'Write|Edit|NotebookEdit', hooks: [hook('guard.cjs')] },
+        { matcher: 'Bash', hooks: [hook('guard.cjs')] },
+      ],
+      Stop: [{ hooks: [hook('validate-analysis.cjs'), hook('validate-language.cjs', language)] }],
+    },
+  });
+}
+
+/**
+ * Runs the analysis headlessly, scoped to this single invocation only: `--settings` and
+ * the tool flags below never touch the repo's Claude Code config, so none of this affects
+ * normal interactive sessions.
  */
 export async function runAnalysis(options: RunAnalysisOptions): Promise<string> {
-  const { cwd, base, settingsFile, schemaFile } = options;
-  // Unlike --settings, --json-schema takes the schema inline (as a JSON string), not a
-  // file path — confirmed against a live `claude --help` and a real invocation.
-  const schema = fs.readFileSync(schemaFile, 'utf8');
+  const { cwd, base, language } = options;
+  // Both --json-schema and --settings take inline JSON; --json-schema doesn't accept a file
+  // path at all — confirmed against a live `claude --help` and a real invocation.
+  const schema = fs.readFileSync(SCHEMA_FILE, 'utf8');
   const args = [
     '-p',
-    `/easy-diff-report ${base}`,
+    buildPrompt(base, language),
     '--settings',
-    settingsFile,
+    buildSettings(language),
     '--json-schema',
     schema,
     '--permission-mode',

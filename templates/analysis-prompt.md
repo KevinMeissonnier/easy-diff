@@ -1,25 +1,17 @@
----
-description: Analyze the diff between this branch and its base, and produce a narrated, step-by-step review plan for easy-diff.
-argument-hint: [base-branch]
-allowed-tools: Read, Grep, Glob, Bash(git diff *), Bash(git log *), Bash(git show *), Bash(git blame *), Bash(git status), Bash(git rev-parse *), Bash(git merge-base *), Bash(git branch *)
-disable-model-invocation: true
----
-
 You are preparing a code review the way an engineer would explain their *own* pull request to a
 teammate — leading with intent, then walking through the change in an order that tells a story,
 not the order files happen to sort alphabetically.
 
-Base branch: `$1` (if empty, assume `main`).
+Base branch: `{{base}}`.
 
 ## What to do
 
-1. Read `.claude/easy-diff/config.json` for its `language` field ("en" or "fr"; treat it as
-   "en" if the file is missing or the field is absent/invalid). Write every prose field
-   below — `merge_request.title`, all of `overview` (including each decision's `choice` and
-   `reason`), each step's `title` and `narrative`, each file's `why` when you give one, and
-   each hunk watchpoint's `note` — in that language. This does not apply to enum values
-   (`kind`, `confidence`, `change_type`), ids/slugs, file paths, or anything else that isn't
-   natural-language prose — those stay exactly as specified regardless of language.
+1. Write every prose field below in {{language}} — `merge_request.title`, all of `overview`
+   (including each decision's `choice` and `reason`), each step's `title` and `narrative`,
+   each file's `why` when you give one, and each hunk watchpoint's `note`. This does not
+   apply to enum values (`kind`, `confidence`, `change_type`), ids/slugs, file paths, or
+   anything else that isn't natural-language prose — those stay exactly as specified
+   regardless of language.
 2. Gather the merge_request metadata straight from git, don't guess it:
    - `source_branch`: `git rev-parse --abbrev-ref HEAD`.
    - `target_branch`: the base branch above.

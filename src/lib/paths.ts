@@ -7,26 +7,24 @@ import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const PACKAGE_ROOT = path.resolve(here, '..', '..');
 export const TEMPLATES_DIR = path.join(PACKAGE_ROOT, 'templates');
+export const PROMPT_FILE = path.join(TEMPLATES_DIR, 'analysis-prompt.md');
+export const SCHEMA_FILE = path.join(TEMPLATES_DIR, 'analysis.schema.json');
+export const HOOKS_DIR = path.join(TEMPLATES_DIR, 'hooks');
 
 /** Relative to the target repo root. Gitignored — generated output only. */
 export const OUTPUT_DIR = 'easy-diff';
-/** Relative to the target repo root. Committed — config, not generated output. */
-export const CONFIG_DIR = path.join('.claude', 'easy-diff');
+/** Relative to the target repo root. Gitignored — per-developer settings. */
+export const CONFIG_FILE = 'config-easy-diff.json';
 
 export interface TargetPaths {
   repoRoot: string;
   outputDir: string;
   dataFile: string;
   reportDir: string;
-  commandFile: string;
-  configReadme: string;
-  settingsFile: string;
-  hookFile: string;
-  validateHookFile: string;
-  validateLanguageHookFile: string;
-  schemaFile: string;
   configFile: string;
   gitignoreFile: string;
+  /** Scaffolded by the git-installed versions, before the prompt, schema and hooks shipped with the package. */
+  legacyFiles: string[];
 }
 
 export function targetPaths(repoRoot: string): TargetPaths {
@@ -35,14 +33,11 @@ export function targetPaths(repoRoot: string): TargetPaths {
     outputDir: path.join(repoRoot, OUTPUT_DIR),
     dataFile: path.join(repoRoot, OUTPUT_DIR, 'data', 'analysis.json'),
     reportDir: path.join(repoRoot, OUTPUT_DIR, 'report'),
-    commandFile: path.join(repoRoot, '.claude', 'commands', 'easy-diff-report.md'),
-    configReadme: path.join(repoRoot, CONFIG_DIR, 'README.md'),
-    settingsFile: path.join(repoRoot, CONFIG_DIR, 'settings.json'),
-    hookFile: path.join(repoRoot, CONFIG_DIR, 'hooks', 'guard.cjs'),
-    validateHookFile: path.join(repoRoot, CONFIG_DIR, 'hooks', 'validate-analysis.cjs'),
-    validateLanguageHookFile: path.join(repoRoot, CONFIG_DIR, 'hooks', 'validate-language.cjs'),
-    schemaFile: path.join(repoRoot, CONFIG_DIR, 'analysis.schema.json'),
-    configFile: path.join(repoRoot, CONFIG_DIR, 'config.json'),
+    configFile: path.join(repoRoot, CONFIG_FILE),
     gitignoreFile: path.join(repoRoot, '.gitignore'),
+    legacyFiles: [
+      path.join(repoRoot, '.claude', 'commands', 'easy-diff-report.md'),
+      path.join(repoRoot, '.claude', 'easy-diff'),
+    ],
   };
 }

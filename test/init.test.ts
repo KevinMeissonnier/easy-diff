@@ -5,7 +5,7 @@ import { init } from '../src/commands/init.js';
 import { targetPaths } from '../src/lib/paths.js';
 import { makeTmpRepo, writeFile, commitAll, removeTmpRepo, git } from './helpers/tmp-repo.js';
 
-test('init scaffolds the command, guard config and .gitignore entry', async (t) => {
+test('init writes config-easy-diff.json and the .gitignore entries', async (t) => {
   const repo = makeTmpRepo();
   t.after(() => removeTmpRepo(repo));
   writeFile(repo, 'README.md', '# test\n');
@@ -17,59 +17,34 @@ test('init scaffolds the command, guard config and .gitignore entry', async (t) 
 
   init();
   const paths = targetPaths(repo);
+  const readConfigFile = () => JSON.parse(fs.readFileSync(paths.configFile, 'utf8'));
 
-  for (const file of [
-    paths.commandFile,
-    paths.settingsFile,
-    paths.hookFile,
-    paths.validateHookFile,
-    paths.validateLanguageHookFile,
-    paths.schemaFile,
-    paths.configFile,
-  ]) {
-    assert.ok(fs.existsSync(file), `expected ${file} to exist`);
-  }
-  assert.match(fs.readFileSync(paths.gitignoreFile, 'utf8'), /^\/easy-diff\/$/m);
-  assert.deepEqual(JSON.parse(fs.readFileSync(paths.configFile, 'utf8')), {
-    language: 'en',
-    reportLanguage: 'en',
+  assert.deepEqual(readConfigFile(), { language: 'en', reportLanguage: 'en' });
+  const gitignore = fs.readFileSync(paths.gitignoreFile, 'utf8');
+  assert.match(gitignore, /^\/easy-diff\/$/m);
+  assert.match(gitignore, /^\/config-easy-diff\.json$/m);
+  assert.ok(!fs.existsSync(`${repo}/.claude`), 'nothing is scaffolded under .claude/ anymore');
+
+  await t.test('the config file is gitignored', () => {
+    git(repo, ['check-ignore', paths.configFile]);
   });
 
-  await t.test('does not accidentally gitignore .claude/easy-diff/ (shares a leaf name with the output dir)', () => {
-    let ignored = true;
-    try {
-      git(repo, ['check-ignore', paths.settingsFile]);
-    } catch {
-      ignored = false; // non-zero exit: check-ignore found no match, i.e. not ignored
-    }
-    assert.equal(ignored, false, `${paths.settingsFile} should not be gitignored`);
-  });
-
-  await t.test('is idempotent: a second run does not overwrite without --force', () => {
-    fs.writeFileSync(paths.settingsFile, '{"custom":true}');
+  await t.test('is idempotent: a second run neither overwrites the config nor duplicates entries', () => {
+    fs.writeFileSync(paths.configFile, '{"language":"fr","reportLanguage":"fr"}');
     init();
-    assert.equal(fs.readFileSync(paths.settingsFile, 'utf8'), '{"custom":true}');
+    assert.deepEqual(readConfigFile(), { language: 'fr', reportLanguage: 'fr' });
+    const entries = fs.readFileSync(paths.gitignoreFile, 'utf8').split('\n');
+    assert.equal(entries.filter((line) => line === '/config-easy-diff.json').length, 1);
   });
 
-  await t.test('--force overwrites existing scaffold files', () => {
+  await t.test('--force overwrites the existing config', () => {
     init({ force: true });
-    assert.notEqual(fs.readFileSync(paths.settingsFile, 'utf8'), '{"custom":true}');
+    assert.deepEqual(readConfigFile(), { language: 'en', reportLanguage: 'en' });
   });
 
-  await t.test('accepts an explicit supported language', () => {
-    init({ force: true, language: 'fr' });
-    assert.deepEqual(JSON.parse(fs.readFileSync(paths.configFile, 'utf8')), {
-      language: 'fr',
-      reportLanguage: 'en',
-    });
-  });
-
-  await t.test('is case-insensitive', () => {
+  await t.test('accepts an explicit supported language, case-insensitively', () => {
     init({ force: true, language: 'FR' });
-    assert.deepEqual(JSON.parse(fs.readFileSync(paths.configFile, 'utf8')), {
-      language: 'fr',
-      reportLanguage: 'en',
-    });
+    assert.deepEqual(readConfigFile(), { language: 'fr', reportLanguage: 'en' });
   });
 
   await t.test('rejects an unsupported language', () => {

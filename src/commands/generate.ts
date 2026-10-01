@@ -2,10 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { repoRoot, currentBranch, detectBaseBranch, changedFiles } from '../lib/git.js';
 import { promptChoice } from '../lib/prompt.js';
-import { targetPaths } from '../lib/paths.js';
+import { targetPaths, CONFIG_FILE } from '../lib/paths.js';
 import { runAnalysis } from '../lib/claude-runner.js';
 import { extractAnalysis } from '../lib/schema.js';
-import { readReportLanguage } from '../lib/config.js';
+import { readConfig } from '../lib/config.js';
 import { buildReportData, writeReport } from '../render/report.js';
 
 async function resolveBase(root: string): Promise<string> {
@@ -39,22 +39,8 @@ export async function generate(options: GenerateOptions = {}): Promise<void> {
   const root = repoRoot();
   const paths = targetPaths(root);
 
-  const requiredFiles: Array<[string, string]> = [
-    ['command', paths.commandFile],
-    ['settings', paths.settingsFile],
-    ['hook', paths.hookFile],
-    ['validate-hook', paths.validateHookFile],
-    ['validate-language-hook', paths.validateLanguageHookFile],
-    ['schema', paths.schemaFile],
-    ['config', paths.configFile],
-  ];
-  for (const [label, file] of requiredFiles) {
-    if (!fs.existsSync(file)) {
-      throw new Error(
-        `Missing easy-diff ${label} file (${path.relative(root, file)}). Run \`easy-diff init\` first.`
-      );
-    }
-  }
+  const config = readConfig(paths.configFile);
+  warnAboutLegacyFiles(root, paths.legacyFiles);
 
   const base = options.base ?? (await resolveBase(root));
   const branch = currentBranch(root);
@@ -71,8 +57,7 @@ export async function generate(options: GenerateOptions = {}): Promise<void> {
   const raw = await runAnalysis({
     cwd: root,
     base,
-    settingsFile: paths.settingsFile,
-    schemaFile: paths.schemaFile,
+    language: config.language,
   });
 
   const analysis = extractAnalysis(raw);
@@ -80,11 +65,21 @@ export async function generate(options: GenerateOptions = {}): Promise<void> {
   fs.mkdirSync(path.dirname(paths.dataFile), { recursive: true });
   fs.writeFileSync(paths.dataFile, JSON.stringify(analysis, null, 2));
 
-  const reportLanguage = readReportLanguage(paths.configFile);
-  const reportData = buildReportData(analysis, base, root, reportLanguage);
+  const reportData = buildReportData(analysis, base, root, config.reportLanguage);
   writeReport(paths.reportDir, reportData);
 
   const indexFile = path.join(paths.reportDir, 'index.html');
   console.log(`\nReport ready: ${path.relative(root, indexFile)}`);
   console.log(`Open it in your browser to start the review.`);
+}
+
+function warnAboutLegacyFiles(root: string, legacyFiles: string[]): void {
+  const found = legacyFiles.filter((file) => fs.existsSync(file));
+  if (found.length === 0) return;
+  console.warn(
+    'Note: these files were scaffolded by an older easy-diff and are no longer used — the ' +
+      'prompt, schema and hooks now ship with the package. You can delete them:\n' +
+      found.map((file) => `  ${path.relative(root, file)}`).join('\n') +
+      `\nLanguage settings now live in ${CONFIG_FILE} (run \`easy-diff init [en|fr]\`).\n`
+  );
 }

@@ -1,8 +1,8 @@
 import path from 'node:path';
 import { repoRoot } from '../lib/git.js';
-import { targetPaths, OUTPUT_DIR } from '../lib/paths.js';
-import { copyTemplate, writeConfigFile } from '../lib/scaffold.js';
-import { ensureGitignoreEntry } from '../lib/gitignore.js';
+import { targetPaths, OUTPUT_DIR, CONFIG_FILE } from '../lib/paths.js';
+import { writeConfigFile } from '../lib/scaffold.js';
+import { ensureGitignoreEntries } from '../lib/gitignore.js';
 import { resolveLanguage, buildConfig } from '../lib/config.js';
 
 export interface InitOptions {
@@ -13,37 +13,21 @@ export interface InitOptions {
 export function init(options: InitOptions = {}): void {
   const root = repoRoot();
   const paths = targetPaths(root);
-  const force = Boolean(options.force);
   const language = resolveLanguage(options.language);
 
-  const results = [
-    copyTemplate('commands/easy-diff-report.md', paths.commandFile, force),
-    copyTemplate('config-readme.md', paths.configReadme, force),
-    copyTemplate('claude-settings.json', paths.settingsFile, force),
-    copyTemplate('hooks/guard.cjs', paths.hookFile, force),
-    copyTemplate('hooks/validate-analysis.cjs', paths.validateHookFile, force),
-    copyTemplate('hooks/validate-language.cjs', paths.validateLanguageHookFile, force),
-    copyTemplate('analysis.schema.json', paths.schemaFile, force),
-    writeConfigFile(paths.configFile, buildConfig(language), force),
-  ];
-
-  for (const result of results) {
-    const rel = path.relative(root, result.path);
-    console.log(
-      result.status === 'created'
-        ? `  created  ${rel}`
-        : `  skipped  ${rel} (already exists, use --force to overwrite)`
-    );
-  }
-
-  // Anchored to the repo root: an unanchored `easy-diff/` would also match
-  // `.claude/easy-diff/` (the config dir shares that leaf name), silently gitignoring
-  // the very config files this command just created.
-  const gitignoreStatus = ensureGitignoreEntry(paths.gitignoreFile, `/${OUTPUT_DIR}/`);
+  const result = writeConfigFile(paths.configFile, buildConfig(language), Boolean(options.force));
+  const rel = path.relative(root, result.path);
   console.log(
-    gitignoreStatus === 'added'
-      ? `  updated  .gitignore (+ ${OUTPUT_DIR}/)`
-      : `  skipped  .gitignore (${OUTPUT_DIR}/ already ignored)`
+    result.status === 'created'
+      ? `  created  ${rel}`
+      : `  skipped  ${rel} (already exists, use --force to overwrite)`
+  );
+
+  const added = ensureGitignoreEntries(paths.gitignoreFile, [`/${OUTPUT_DIR}/`, `/${CONFIG_FILE}`]);
+  console.log(
+    added.length > 0
+      ? `  updated  .gitignore (+ ${added.join(', ')})`
+      : '  skipped  .gitignore (entries already present)'
   );
 
   console.log('\neasy-diff is set up. Next:');
