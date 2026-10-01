@@ -24,5 +24,6 @@ jobs:
         run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
       - run: npm ci
       # prepack builds, prepublishOnly runs the tests. Prereleases (v1.2.0-beta.0) go to the
-      # `next` dist-tag so `npm install -g easy-diff` keeps resolving to the latest stable.
+      # `next` dist-tag so `npm install -g @kevinmeissonnier/easy-diff` keeps resolving to the
+      # latest stable.
       - run: npm publish ${{ contains(github.ref_name, '-') && '--tag next' || '' }}

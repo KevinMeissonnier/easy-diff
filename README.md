@@ -20,7 +20,7 @@ Requirements:
   checks this at install time: a missing or logged-out `claude` only fails at `generate`.
 
 ```bash
-npm install -g easy-diff
+npm install -g @kevinmeissonnier/easy-diff
 easy-diff --version
 ```
 
@@ -30,8 +30,8 @@ into your repos besides an optional config file and the generated report.
 
 Other ways to run it:
 
-- Without installing: `npx easy-diff@latest generate`.
-- Pinned per repo: `npm install -D easy-diff`, then `npx easy-diff generate`.
+- Without installing: `npx @kevinmeissonnier/easy-diff@latest generate`.
+- Pinned per repo: `npm install -D @kevinmeissonnier/easy-diff`, then `npx easy-diff generate`.
 
 ## Usage
 
@@ -76,7 +76,7 @@ language.
 ### Upgrading
 
 ```bash
-npm install -g easy-diff@latest
+npm install -g @kevinmeissonnier/easy-diff@latest
 ```
 
 The prompt, schema, hooks and viewer ship with the package, so an upgrade takes effect on the
@@ -90,7 +90,7 @@ git-installed version, `generate` lists them: they are no longer used and can be
 ### Uninstalling
 
 ```bash
-npm uninstall -g easy-diff
+npm uninstall -g @kevinmeissonnier/easy-diff
 ```
 
 Then delete `config-easy-diff.json` and `easy-diff/` from your repos, along with their
@@ -125,7 +125,7 @@ the config file, a patch bump never does.
    dist-tag instead of `latest`.
 
 A published version number can never be reused, so try the tarball first if in doubt:
-`npm pack`, then `npm install -g ./easy-diff-<version>.tgz`.
+`npm pack`, then `npm install -g ./kevinmeissonnier-easy-diff-<version>.tgz`.
 
 The very first publish is manual (`npm publish`), because npm only lets you configure a trusted
 publisher on a package that already exists. Then, on npmjs.com, add this repository and
