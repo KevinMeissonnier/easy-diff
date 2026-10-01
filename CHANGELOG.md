@@ -5,6 +5,14 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): while in `0.x`, a minor bump may
 break the CLI or the config file, a patch bump never does.
 
+## [0.1.1] - 2026-10-01
+
+### Fixed
+
+- The report page broke (blank page, script error) when the diff or the analysis contained a
+  `$'`, `$&` or `` $` `` sequence, e.g. bash ANSI-C quoting like `"$x"$'\n'`: those were
+  expanded as string-replacement patterns while embedding the data into the HTML.
+
 ## [0.1.0] - 2026-10-01
 
 First public release.

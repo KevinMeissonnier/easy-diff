@@ -73,6 +73,17 @@ test('render pipeline: diff content comes from git, not from the analysis JSON',
   assert.match(html, /Add bye\(\)/);
   assert.match(html, /def bye/);
 
+  await t.test('data containing $-replacement patterns is embedded verbatim', () => {
+    const withDollars = {
+      ...data,
+      overview: { ...data.overview, what: `echo "a"$'\\n' $& $\` $$ <b>` },
+    };
+    writeReport(reportDir, withDollars);
+    const written = fs.readFileSync(path.join(reportDir, 'index.html'), 'utf8');
+    const embedded = written.match(/window\.__EASY_DIFF__ = (.*?);<\/script>/s)?.[1] ?? '';
+    assert.equal(JSON.parse(embedded).overview.what, withDollars.overview.what);
+  });
+
   await t.test('an out-of-range hunk index degrades to showing every real hunk', () => {
     const withBadIndex = Analysis.parse({
       ...analysis,

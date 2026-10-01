@@ -238,6 +238,8 @@ export function writeReport(reportDir: string, data: ReportData): void {
   // Guard against the (untrusted, LLM-derived) data prematurely closing the <script>
   // tag it's embedded in.
   const json = JSON.stringify(data).replace(/</g, '\\u003c');
-  const html = shell.replace('/*__EASY_DIFF_DATA__*/null', json);
+  // A replacer function, because a replacement string would expand `$'`, `$&`… found in the
+  // data (e.g. a shell diff line `"$x"$'\n'`) instead of inserting them literally.
+  const html = shell.replace('/*__EASY_DIFF_DATA__*/null', () => json);
   fs.writeFileSync(path.join(reportDir, 'index.html'), html);
 }
