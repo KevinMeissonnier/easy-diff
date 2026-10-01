@@ -36,7 +36,7 @@
     "node": ">=18.17"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && chmod +x dist/cli.js && npm run build:css",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && chmod +x dist/cli.js && npm run build:css",
     "build:css": "tailwindcss -i templates/report/tailwind.css -o templates/report/style.css --minify",
     "dev": "tsx src/cli.ts",
     "typecheck": "tsc --noEmit",
