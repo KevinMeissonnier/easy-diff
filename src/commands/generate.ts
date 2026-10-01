@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { repoRoot, currentBranch, detectBaseBranch, changedFiles } from '../lib/git.js';
-import { promptChoice } from '../lib/prompt.js';
+import { promptChoice, promptConfirm } from '../lib/prompt.js';
+import { openInDefaultApp } from '../lib/open.js';
 import { targetPaths, CONFIG_FILE } from '../lib/paths.js';
 import { runAnalysis } from '../lib/claude-runner.js';
 import { extractAnalysis } from '../lib/schema.js';
@@ -70,7 +71,21 @@ export async function generate(options: GenerateOptions = {}): Promise<void> {
 
   const indexFile = path.join(paths.reportDir, 'index.html');
   console.log(`\nReport ready: ${path.relative(root, indexFile)}`);
-  console.log(`Open it in your browser to start the review.`);
+  await offerToOpen(indexFile);
+}
+
+async function offerToOpen(indexFile: string): Promise<void> {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    console.log('Open it in your browser to start the review.');
+    return;
+  }
+  if (!(await promptConfirm('Open it in your browser now?'))) return;
+  try {
+    await openInDefaultApp(indexFile);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`Could not open it automatically (${message}). Open the file above manually.`);
+  }
 }
 
 function warnAboutLegacyFiles(root: string, legacyFiles: string[]): void {

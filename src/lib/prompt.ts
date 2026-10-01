@@ -25,3 +25,17 @@ export async function promptChoice(
     rl.close();
   }
 }
+
+export async function promptConfirm(message: string): Promise<boolean> {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  try {
+    const answer = (
+      await new Promise<string>((resolve) => rl.question(`${message} [Y/n] `, resolve))
+    )
+      .trim()
+      .toLowerCase();
+    return answer === '' || answer === 'y' || answer === 'yes';
+  } finally {
+    rl.close();
+  }
+}
