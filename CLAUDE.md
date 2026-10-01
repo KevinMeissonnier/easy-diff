@@ -149,18 +149,16 @@ diff to reverse-engineer.
   dependency, like `guard.cjs` — it runs via plain `node`, with the target repo as cwd.
 - **The report language is a config setting (`config-easy-diff.json` at the repo root,
   gitignored so each developer picks their own), not a `generate` flag.** `easy-diff init
-  [en|fr]` writes it (default `en`). `generate` reads it and injects it into the prompt, and
+  [en|fr]` writes it (default `fr`). `generate` reads it and injects it into the prompt, and
   passes it as an argument to `templates/hooks/validate-language.cjs` — a second `Stop` hook,
   independent of `validate-analysis.cjs`, which heuristically checks (FR/EN stopword frequency,
   not exact detection) that the model complied, and blocks with a rewrite request otherwise.
   Only `src/lib/config.ts` knows where the config lives.
-- **The config has two distinct language fields, not to be confused.** `language` (above) is
-  the language the LLM writes the analysis prose in — it's a prompt setting, checked by
-  `validate-language.cjs`. `reportLanguage` (default `en`) is the language of the HTML *viewer*'s
-  static labels (buttons, titles — `templates/report/i18n.js`, loaded by `index.html` before
-  `app.js`): it's not model output, `generate.ts` reads it via `readConfig`
-  (`src/lib/config.ts`) and embeds it in `ReportData.reportLanguage`; nothing checks its
-  compliance since no LLM is involved. No CLI flag for now — edit the file by hand.
+- **A single `language` field drives the whole report.** The same value sets the LLM's prose
+  language and the HTML *viewer*'s static labels (buttons, titles — `templates/report/i18n.js`,
+  loaded by `index.html` before `app.js`, embedded as `ReportData.language`). A prior version
+  had a separate `reportLanguage` for the viewer; it was merged because a report mixing two
+  languages was never actually wanted.
 - **Paths and bundling**: no bundler (tsup/esbuild) for now — build via plain `tsc`, which
   preserves the `src/` → `dist/` tree structure, on which `src/lib/paths.ts` depends (computing
   `PACKAGE_ROOT` relative to its own location on disk). Introducing a bundler would require

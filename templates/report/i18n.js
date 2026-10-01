@@ -1,7 +1,6 @@
-// Static UI labels for the report viewer (buttons, headings, etc.) — independent of the
-// LLM-written analysis prose, which is generated in whatever language `config.json`'s
-// `language` field asked for. This file's language is picked at render time by `app.js`
-// from `data.reportLanguage` (`config.json`'s separate `reportLanguage` field).
+// Static UI labels for the report viewer (buttons, headings, etc.). Picked at render time by
+// `app.js` from `data.language` — the same `config-easy-diff.json` `language` the LLM writes
+// the analysis prose in.
 (function () {
   window.EASY_DIFF_I18N = {
     en: {

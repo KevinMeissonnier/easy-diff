@@ -19,7 +19,7 @@ test('init writes config-easy-diff.json and the .gitignore entries', async (t) =
   const paths = targetPaths(repo);
   const readConfigFile = () => JSON.parse(fs.readFileSync(paths.configFile, 'utf8'));
 
-  assert.deepEqual(readConfigFile(), { language: 'en', reportLanguage: 'en' });
+  assert.deepEqual(readConfigFile(), { language: 'fr' });
   const gitignore = fs.readFileSync(paths.gitignoreFile, 'utf8');
   assert.match(gitignore, /^\/easy-diff\/$/m);
   assert.match(gitignore, /^\/config-easy-diff\.json$/m);
@@ -30,21 +30,21 @@ test('init writes config-easy-diff.json and the .gitignore entries', async (t) =
   });
 
   await t.test('is idempotent: a second run neither overwrites the config nor duplicates entries', () => {
-    fs.writeFileSync(paths.configFile, '{"language":"fr","reportLanguage":"fr"}');
+    fs.writeFileSync(paths.configFile, '{"language":"en"}');
     init();
-    assert.deepEqual(readConfigFile(), { language: 'fr', reportLanguage: 'fr' });
+    assert.deepEqual(readConfigFile(), { language: 'en' });
     const entries = fs.readFileSync(paths.gitignoreFile, 'utf8').split('\n');
     assert.equal(entries.filter((line) => line === '/config-easy-diff.json').length, 1);
   });
 
   await t.test('--force overwrites the existing config', () => {
     init({ force: true });
-    assert.deepEqual(readConfigFile(), { language: 'en', reportLanguage: 'en' });
+    assert.deepEqual(readConfigFile(), { language: 'fr' });
   });
 
   await t.test('accepts an explicit supported language, case-insensitively', () => {
-    init({ force: true, language: 'FR' });
-    assert.deepEqual(readConfigFile(), { language: 'fr', reportLanguage: 'en' });
+    init({ force: true, language: 'EN' });
+    assert.deepEqual(readConfigFile(), { language: 'en' });
   });
 
   await t.test('rejects an unsupported language', () => {

@@ -65,7 +65,7 @@ export async function generate(options: GenerateOptions = {}): Promise<void> {
   fs.mkdirSync(path.dirname(paths.dataFile), { recursive: true });
   fs.writeFileSync(paths.dataFile, JSON.stringify(analysis, null, 2));
 
-  const reportData = buildReportData(analysis, base, root, config.reportLanguage);
+  const reportData = buildReportData(analysis, base, root, config.language);
   writeReport(paths.reportDir, reportData);
 
   const indexFile = path.join(paths.reportDir, 'index.html');
