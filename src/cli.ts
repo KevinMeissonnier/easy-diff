@@ -21,9 +21,9 @@ program
 program
   .command('init')
   .description(
-    'Write config-easy-diff.json (report languages) and the .gitignore entries into the current repo.'
+    'Write config-easy-diff.json (report language) and the .gitignore entries into the current repo.'
   )
-  .argument('[language]', 'report language: en or fr (default: en)')
+  .argument('[language]', 'report language: en or fr (default: fr)')
   .option('-f, --force', 'overwrite an existing config-easy-diff.json')
   .action((language: string | undefined, opts: { force?: boolean }) => {
     try {

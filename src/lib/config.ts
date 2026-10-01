@@ -2,22 +2,17 @@ import fs from 'node:fs';
 
 /**
  * `config-easy-diff.json` at the repo root (gitignored, per developer), written by
- * `easy-diff init`. Two independent fields, both `Language`:
- * - `language`: the language the LLM writes the report's prose in. `generate` injects it
- *   into the prompt and passes it to `templates/hooks/validate-language.cjs`, which checks
- *   the model actually complied.
- * - `reportLanguage`: the language of the report *viewer*'s own static UI (buttons,
- *   headings, etc. in `templates/report/`) — not model output at all, so nothing checks
- *   compliance for it. Defaults to English; edit the file by hand to change it.
+ * `easy-diff init`. A single `language` drives both the LLM-written prose (`generate`
+ * injects it into the prompt and passes it to `templates/hooks/validate-language.cjs`, which
+ * checks the model actually complied) and the report viewer's static UI labels.
  */
 
 export const SUPPORTED_LANGUAGES = ['en', 'fr'] as const;
 export type Language = (typeof SUPPORTED_LANGUAGES)[number];
-export const DEFAULT_LANGUAGE: Language = 'en';
+export const DEFAULT_LANGUAGE: Language = 'fr';
 
 export interface EasyDiffConfig {
   language: Language;
-  reportLanguage: Language;
 }
 
 export function resolveLanguage(input: string | undefined): Language {
@@ -31,11 +26,11 @@ export function resolveLanguage(input: string | undefined): Language {
   );
 }
 
-export function buildConfig(language: Language, reportLanguage: Language = DEFAULT_LANGUAGE): EasyDiffConfig {
-  return { language, reportLanguage };
+export function buildConfig(language: Language): EasyDiffConfig {
+  return { language };
 }
 
-/** Fails open, field by field, to the default on anything missing, unreadable or invalid. */
+/** Fails open to the default on anything missing, unreadable or invalid. */
 export function readConfig(configFile: string): EasyDiffConfig {
   let raw: unknown;
   try {
@@ -43,9 +38,7 @@ export function readConfig(configFile: string): EasyDiffConfig {
   } catch {
     raw = {};
   }
-  const pick = (field: keyof EasyDiffConfig): Language => {
-    const value = raw && typeof raw === 'object' ? (raw as Record<string, unknown>)[field] : undefined;
-    return (SUPPORTED_LANGUAGES as readonly unknown[]).includes(value) ? (value as Language) : DEFAULT_LANGUAGE;
-  };
-  return { language: pick('language'), reportLanguage: pick('reportLanguage') };
+  const value = raw && typeof raw === 'object' ? (raw as Record<string, unknown>).language : undefined;
+  const language = (SUPPORTED_LANGUAGES as readonly unknown[]).includes(value) ? (value as Language) : DEFAULT_LANGUAGE;
+  return { language };
 }

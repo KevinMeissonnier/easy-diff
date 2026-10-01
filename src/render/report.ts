@@ -63,8 +63,8 @@ export interface ReportData {
   generatedAt: string;
   meta: ReportMeta;
   steps: StepWithHunks[];
-  /** Language of the report viewer's own static UI — independent of `analysis`' prose. */
-  reportLanguage: Language;
+  /** Language of the report viewer's own static UI labels. */
+  language: Language;
 }
 
 const ZERO_CHURN = { add: 0, del: 0 };
@@ -73,7 +73,7 @@ export function buildReportData(
   analysis: Analysis,
   base: string,
   cwd: string,
-  reportLanguage: Language = DEFAULT_LANGUAGE
+  language: Language = DEFAULT_LANGUAGE
 ): ReportData {
   const numstat = safeNumstat(base, cwd);
   const steps: StepWithHunks[] = analysis.steps.map((step) => ({
@@ -108,7 +108,7 @@ export function buildReportData(
     generatedAt: new Date().toISOString(),
     meta,
     steps,
-    reportLanguage,
+    language,
   };
 }
 

@@ -13,25 +13,19 @@ function tmpConfigFile(content: string | null): string {
 }
 
 test('readConfig', async (t) => {
-  await t.test('reads both languages', () => {
-    assert.deepEqual(readConfig(tmpConfigFile('{"language":"fr","reportLanguage":"fr"}')), {
-      language: 'fr',
-      reportLanguage: 'fr',
-    });
+  await t.test('reads the language', () => {
+    assert.deepEqual(readConfig(tmpConfigFile('{"language":"en"}')), { language: 'en' });
   });
 
-  await t.test('defaults each missing or unsupported field to en independently', () => {
-    assert.deepEqual(readConfig(tmpConfigFile('{"language":"fr","reportLanguage":"de"}')), {
-      language: 'fr',
-      reportLanguage: 'en',
-    });
+  await t.test('defaults to fr when the language is unsupported', () => {
+    assert.deepEqual(readConfig(tmpConfigFile('{"language":"de"}')), { language: 'fr' });
   });
 
-  await t.test('defaults to en when the file is missing', () => {
-    assert.deepEqual(readConfig(tmpConfigFile(null)), { language: 'en', reportLanguage: 'en' });
+  await t.test('defaults to fr when the file is missing', () => {
+    assert.deepEqual(readConfig(tmpConfigFile(null)), { language: 'fr' });
   });
 
-  await t.test('defaults to en when the file is malformed JSON', () => {
-    assert.deepEqual(readConfig(tmpConfigFile('not json')), { language: 'en', reportLanguage: 'en' });
+  await t.test('defaults to fr when the file is malformed JSON', () => {
+    assert.deepEqual(readConfig(tmpConfigFile('not json')), { language: 'fr' });
   });
 });

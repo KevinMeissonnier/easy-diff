@@ -10,7 +10,7 @@
  *
  * This is an independent layer alongside validate-analysis.cjs: that hook checks the
  * JSON's *shape*, this one checks that its prose was actually written in the expected
- * language, passed as the first argument ("en" or "fr", default "en") by `easy-diff
+ * language, passed as the first argument ("en" or "fr", default "fr") by `easy-diff
  * generate` from the repo's config — the prompt asks for this, but nothing stops the model
  * from ignoring it, so this blocks the stop and asks for a rewrite if the report reads as
  * the wrong language.
@@ -23,7 +23,7 @@
  */
 
 const SUPPORTED_LANGUAGES = ['en', 'fr'];
-const DEFAULT_LANGUAGE = 'en';
+const DEFAULT_LANGUAGE = 'fr';
 const MIN_SIGNAL = 4;
 
 // Common stopwords that are essentially unambiguous to one language, avoiding words that

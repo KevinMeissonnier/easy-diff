@@ -32,22 +32,21 @@ easy-diff generate <base>   # ...against a specific base branch
 
 Then open `easy-diff/report/index.html` in your browser.
 
-`init` is optional: without a config, everything defaults to English.
+`init` is optional: without a config, everything defaults to French.
 
 ### Configuration
 
 `config-easy-diff.json`, at the repo root, is gitignored: each developer picks their own
-languages.
+language.
 
 ```json
 {
-  "language": "fr",
-  "reportLanguage": "en"
+  "language": "fr"
 }
 ```
 
-- `language` (`en` or `fr`) — the language the analysis is written in.
-- `reportLanguage` (`en` or `fr`) — the language of the report viewer's buttons and headings.
+- `language` (`en` or `fr`, default `fr`) — the language of the whole report: both the analysis
+  prose and the viewer's buttons and headings.
 
 ### Upgrading
 

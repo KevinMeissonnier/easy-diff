@@ -7,8 +7,8 @@
     return;
   }
 
-  const t = window.EASY_DIFF_I18N[data.reportLanguage] || window.EASY_DIFF_I18N.en;
-  document.documentElement.lang = data.reportLanguage === 'fr' ? 'fr' : 'en';
+  const t = window.EASY_DIFF_I18N[data.language] || window.EASY_DIFF_I18N.fr;
+  document.documentElement.lang = data.language === 'en' ? 'en' : 'fr';
   document.title = t.title;
 
   // One-off multi-track grid layouts, kept as plain CSS to avoid Tailwind's arbitrary-value

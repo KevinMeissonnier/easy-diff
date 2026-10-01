@@ -26,9 +26,10 @@ function run(
   }
 }
 
-test('validate-language hook: allows English prose when no language is passed (defaults to English)', () => {
-  const { blocked } = run({ last_assistant_message: JSON.stringify(validAnalysis) });
-  assert.equal(blocked, false);
+test('validate-language hook: blocks English prose when no language is passed (defaults to French)', () => {
+  const { blocked, stderr } = run({ last_assistant_message: JSON.stringify(validAnalysis) });
+  assert.equal(blocked, true);
+  assert.match(stderr, /French/);
 });
 
 test('validate-language hook: blocks English prose when the expected language is French', () => {
@@ -83,9 +84,10 @@ test('validate-language hook: checks step narratives and decisions, not just the
   assert.match(stderr, /English/);
 });
 
-test('validate-language hook: treats an unsupported language argument as English', () => {
-  const { blocked } = run({ last_assistant_message: JSON.stringify(validAnalysis) }, 'de');
-  assert.equal(blocked, false);
+test('validate-language hook: treats an unsupported language argument as French', () => {
+  const { blocked, stderr } = run({ last_assistant_message: JSON.stringify(validAnalysis) }, 'de');
+  assert.equal(blocked, true);
+  assert.match(stderr, /French/);
 });
 
 test('validate-language hook: does not block on too little text to judge', () => {
