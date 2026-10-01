@@ -306,7 +306,7 @@
             </div>
           </div>
 
-          <section class="mb-16 max-w-[72ch]">
+          <section class="mb-16">
             <h2 class="text-[17px] font-medium tracking-[0.1em] uppercase text-neutral-400 mb-6">${t.mentalModel}</h2>
             <div class="flex flex-col gap-4">${paragraphs(o.mental_model, 'text-neutral-200 text-[15px] text-pretty')}</div>
           </section>
@@ -337,7 +337,7 @@
       )
       .join('');
     return `
-      <section class="mb-16 max-w-[72ch]">
+      <section class="mb-16">
         <h2 class="text-[17px] font-medium tracking-[0.1em] uppercase text-neutral-400 mb-6">${t.decisions}</h2>
         <ul class="list-none m-0 p-0 flex flex-col gap-5">${items}</ul>
       </section>`;
