@@ -5,7 +5,7 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): while in `0.x`, a minor bump may
 break the CLI or the config file, a patch bump never does.
 
-## [Unreleased]
+## [0.1.0] - 2026-10-01
 
 First public release.
 
