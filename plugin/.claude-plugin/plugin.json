@@ -1,0 +1,9 @@
+{
+  "name": "easy-diff",
+  "version": "0.1.0",
+  "description": "Browse an easy-diff review (easy-diff/data/report.json) in a Claude Code pane.",
+  "author": {
+    "name": "Kevin Meissonnier"
+  },
+  "types": "./types/index.d.ts"
+}

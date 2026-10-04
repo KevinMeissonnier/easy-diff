@@ -56,8 +56,23 @@ What `generate` does, in order:
    prompt, schema and hooks taken from the installed package.
 3. Validates the analysis and saves it to `easy-diff/data/analysis.json`.
 4. Renders the report. The displayed diffs come from `git diff` directly, never from the model.
+   The same data is saved to `easy-diff/data/report.json` for the Claude Code pane below.
 
 `init` is optional: without a config, everything defaults to French.
+
+### Reading the report in Claude Code (experimental)
+
+`plugin/` is a Claude Code plugin that shows the last report in a pane beside the conversation
+instead of the browser. It relies on Claude Code's function-hooks plugin API, which is in early
+access and may change between releases.
+
+```bash
+claude --plugin-dir /path/to/easy-diff/plugin   # in the repo you ran `easy-diff generate` in
+```
+
+Then type `/easy-diff`. The pane opens on the overview; `n`/`p` move between steps and `o` goes
+back to the overview once the pane has the keyboard. A "Watch for" entry opens its step and
+scrolls to the line, where the note is drawn right under it.
 
 ### Configuration
 

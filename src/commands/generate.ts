@@ -67,6 +67,7 @@ export async function generate(options: GenerateOptions = {}): Promise<void> {
   fs.writeFileSync(paths.dataFile, JSON.stringify(analysis, null, 2));
 
   const reportData = buildReportData(analysis, base, root, config.language);
+  fs.writeFileSync(paths.reportDataFile, JSON.stringify(reportData, null, 2));
   writeReport(paths.reportDir, reportData);
 
   const indexFile = path.join(paths.reportDir, 'index.html');

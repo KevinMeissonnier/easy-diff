@@ -20,6 +20,8 @@ export interface TargetPaths {
   repoRoot: string;
   outputDir: string;
   dataFile: string;
+  /** The rendered report's data (`ReportData`), read by the Claude Code plugin's pane. */
+  reportDataFile: string;
   reportDir: string;
   configFile: string;
   gitignoreFile: string;
@@ -32,6 +34,7 @@ export function targetPaths(repoRoot: string): TargetPaths {
     repoRoot,
     outputDir: path.join(repoRoot, OUTPUT_DIR),
     dataFile: path.join(repoRoot, OUTPUT_DIR, 'data', 'analysis.json'),
+    reportDataFile: path.join(repoRoot, OUTPUT_DIR, 'data', 'report.json'),
     reportDir: path.join(repoRoot, OUTPUT_DIR, 'report'),
     configFile: path.join(repoRoot, CONFIG_FILE),
     gitignoreFile: path.join(repoRoot, '.gitignore'),

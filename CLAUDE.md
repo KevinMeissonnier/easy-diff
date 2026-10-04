@@ -110,6 +110,10 @@ diff to reverse-engineer.
   `test/fixtures/`).
 - `src/render/report.ts` — builds the report data (the LLM's JSON + the exact per-file diffs,
   recomputed via `git diff`, never provided by the LLM) and writes the static HTML/CSS/JS.
+- `plugin/` — Claude Code plugin (function-hooks API, early access) drawing the report in a pane
+  from `easy-diff/data/report.json`, which `generate` writes beside `analysis.json`. Runs in the
+  engine's sandbox (no Node), so `plugin/types/index.d.ts` mirrors `ReportData` instead of
+  importing it. `claude plugin validate plugin` and `claude plugin test plugin` check it.
 - `templates/` — the prompt, JSON schema and hooks used by `generate` straight from the installed
   package, plus the HTML/CSS/JS viewer copied by `render/report.ts`. These are not TypeScript
   sources.
@@ -164,6 +168,11 @@ diff to reverse-engineer.
   `PACKAGE_ROOT` relative to its own location on disk). Introducing a bundler would require
   revisiting this computation (see the comment in `paths.ts`). The same holds once installed
   from npm: `package.json` `files` ships `dist/` and the runtime `templates/`, side by side.
+
+- **The pane draws hunks with Claude Code's own `<Code format="diff">`**, which cannot colour a
+  single line. `plugin/hooks/diff-chunks.ts` therefore ends a piece right after each watched line
+  (recomputing every piece's `@@` header) and draws the note in between, purple, keyed so the
+  "Watch for" entries can scroll to it. Same single-concept rule as the HTML viewer.
 
 ## Commands
 

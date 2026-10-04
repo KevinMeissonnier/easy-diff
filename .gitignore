@@ -6,3 +6,6 @@ dist/
 # easy-diff
 /easy-diff/
 /config-easy-diff.json
+
+# Laid by Claude Code when it loads the plugin from disk
+/plugin/.claude-plugin/types/
