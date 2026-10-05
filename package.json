@@ -1,17 +1,7 @@
 {
-  "name": "@kevinmeissonnier/easy-diff",
-  "version": "0.1.1",
+  "name": "easy-diff",
+  "private": true,
   "description": "Turn a git diff into a narrated, step-by-step review — as if an agent were presenting its own work, instead of a raw diff you have to reverse-engineer.",
-  "keywords": [
-    "code-review",
-    "review",
-    "git",
-    "diff",
-    "claude",
-    "claude-code",
-    "llm",
-    "cli"
-  ],
   "license": "MIT",
   "author": "Kevin Meissonnier",
   "homepage": "https://github.com/KevinMeissonnier/easy-diff#readme",
@@ -23,39 +13,18 @@
     "url": "https://github.com/KevinMeissonnier/easy-diff/issues"
   },
   "type": "module",
-  "bin": {
-    "easy-diff": "dist/cli.js"
-  },
-  "files": [
-    "dist",
-    "templates",
-    "!templates/analysis.example.json",
-    "!templates/report/tailwind.css"
-  ],
   "engines": {
-    "node": ">=18.17"
-  },
-  "publishConfig": {
-    "access": "public"
+    "node": ">=22.18"
   },
   "scripts": {
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && chmod +x dist/cli.js && npm run build:css",
-    "build:css": "tailwindcss -i templates/report/tailwind.css -o templates/report/style.css --minify",
-    "dev": "tsx src/cli.ts",
+    "build:css": "tailwindcss -i plugin/templates/report/tailwind.css -o plugin/templates/report/style.css --minify",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test test/**/*.test.ts",
-    "prepack": "npm run build",
-    "prepublishOnly": "npm test"
-  },
-  "dependencies": {
-    "commander": "^12.1.0",
-    "zod": "^3.23.8"
+    "test": "node --test 'test/**/*.test.ts'"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",
     "@types/node": "^22.7.5",
     "tailwindcss": "^4.3.3",
-    "tsx": "^4.19.1",
     "typescript": "^5.6.3"
   }
 }

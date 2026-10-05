@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { realpathSync } from 'node:fs';
-import { repoRoot, currentBranch, detectBaseBranch, changedFiles, diffForFile } from '../src/lib/git.js';
+import { repoRoot, currentBranch, detectBaseBranch, changedFiles, diffForFile } from '../plugin/src/lib/git.ts';
 import {
   makeTmpRepo,
   makeBareRepo,
@@ -10,7 +10,7 @@ import {
   commitAll,
   removeTmpRepo,
   git,
-} from './helpers/tmp-repo.js';
+} from './helpers/tmp-repo.ts';
 
 test('git helpers against a real throwaway repo', async (t) => {
   const repo = makeTmpRepo();

@@ -90,97 +90,119 @@ Source: [andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-s
 
 # easy-diff
 
-CLI that turns a git diff into a narrated review (overview + commented steps), instead of a raw
-diff to reverse-engineer.
+Claude Code plugin that turns a git diff into a narrated review (overview + commented steps),
+instead of a raw diff to reverse-engineer.
 
 ## Structure
 
-- `src/cli.ts` — CLI entry point (commander), `init` and `generate` subcommands.
-- `src/commands/init.ts` — writes `config-easy-diff.json` and the `.gitignore` entries in the
-  target repo. Pure file I/O, no network. Optional: `generate` defaults to English without it.
-- `src/commands/generate.ts` — orchestrates the analysis: detects the base, invokes headless
-  Claude Code, validates the output, writes `easy-diff/data/analysis.json`, triggers the HTML
-  render.
-- `src/lib/claude-runner.ts` — headless `claude -p` invocation. Builds the prompt from
-  `templates/analysis-prompt.md` (`{{base}}`/`{{language}}` filled in) and the `--settings` JSON
-  registering the hooks by absolute path into the installed package.
-- `src/lib/schema.ts` — zod schema for the analysis + `extractAnalysis`, which tries several
-  extraction points in Claude Code's `--output-format json`/`--json-schema` output (the envelope
-  and its `structured_output` field are confirmed against a real invocation, see
-  `test/fixtures/`).
-- `src/render/report.ts` — builds the report data (the LLM's JSON + the exact per-file diffs,
-  recomputed via `git diff`, never provided by the LLM) and writes the static HTML/CSS/JS.
-- `templates/` — the prompt, JSON schema and hooks used by `generate` straight from the installed
-  package, plus the HTML/CSS/JS viewer copied by `render/report.ts`. These are not TypeScript
-  sources.
+The repository root is a plugin marketplace (`.claude-plugin/marketplace.json`) plus the
+development tooling (`package.json`, `tsconfig.json`, `test/`). The plugin itself is `plugin/`,
+the only directory a user's Claude Code copies on install.
+
+- `plugin/skills/review/SKILL.md` — `/easy-diff:review [base]`, run in the user's session. Its
+  `!` injection runs `cli.ts prepare` before the model reads it, then it launches the analyst
+  agent, runs `cli.ts render` and offers `cli.ts open`.
+- `plugin/agents/analyst.md` — the `easy-diff:analyst` subagent: the analysis prompt, plus the
+  JSON schema the model must follow (there is no `--json-schema` for a subagent). It writes
+  `easy-diff/data/analysis.json` and nothing else.
+- `plugin/hooks/hooks.json` — `guard.cjs` on `PreToolUse` and `check-analysis.ts` on
+  `SubagentStop`, both scoped to the analyst.
+- `plugin/src/cli.ts` — `prepare [base]`, `render <base> [language]`, `open <file>`; called by
+  the skill only, so no argument parser.
+- `plugin/src/commands/prepare.ts` — detects/checks the base, deletes a stale analysis, keeps
+  `easy-diff/` out of git through `.git/info/exclude`, prints `key: value` lines for the skill.
+- `plugin/src/commands/render.ts` — validates the analysis and triggers the HTML render.
+- `plugin/src/lib/analysis.ts` — the analysis type and `validateAnalysis`, dependency-free,
+  shared by the `SubagentStop` hook and `render`.
+- `plugin/src/lib/language.ts` — the supported languages and the FR/EN stopword heuristic.
+- `plugin/src/render/report.ts` — builds the report data (the LLM's JSON + the exact per-file
+  diffs, recomputed via `git diff`, never provided by the LLM) and writes the static HTML/CSS/JS.
+- `plugin/templates/report/` — the HTML/CSS/JS viewer copied by `render/report.ts`. Not
+  TypeScript sources.
 
 ## Design decisions not to re-discuss without reason
 
-- **`detectBaseBranch` (`src/lib/git.ts`) guesses the base by merge-base proximity, not by
-  name.** Git keeps no record of "which branch this started from"; the only reliable signal is
-  `@{upstream}` if configured, otherwise the number of commits unique to HEAD since the
+- **A Claude Code plugin, not an npm package.** Version 0.1.x was a CLI that ran a headless
+  `claude -p` and needed `--settings`, `--json-schema` and output-envelope parsing to drive it
+  from outside. Inside a session, the analysis is a subagent and all of that disappears. The
+  cost: no use without a Claude Code session (CI goes through `claude -p "/easy-diff:review"`).
+- **`detectBaseBranch` (`plugin/src/lib/git.ts`) guesses the base by merge-base proximity, not
+  by name.** Git keeps no record of "which branch this started from"; the only reliable signal
+  is `@{upstream}` if configured, otherwise the number of commits unique to HEAD since the
   merge-base with each known branch (`origin/*`, or local branches if there's no remote) — the
   closest one wins. Needed for repos that don't follow the `main`/`master`/`develop` convention
   (e.g. versioned maintenance branches like Symfony's `6.4`, `7.1`). The old name-based fallback
   remains a last resort. On a strict tie between several candidates, `detectBaseBranch` returns
-  `{ status: 'ambiguous', candidates }` instead of guessing silently; `generate.ts` offers an
-  interactive choice (`src/lib/prompt.ts`, dependency-free `readline`) if stdin is a TTY,
-  otherwise it fails listing the candidates — never a blocking prompt in CI.
-
-- **The LLM never produces HTML or a copied diff.** It only outputs a structured JSON (overview +
-  steps, validated by `templates/analysis.schema.json`). The rendering and the displayed hunks
-  are computed deterministically by our code (direct `git diff`), not by the model — this avoids
-  layout inconsistencies and diff hallucinations.
-- **Nothing technical is copied into the target repo.** The prompt, schema and hooks are read
-  from the installed package on every `generate`, and the hooks are registered through an inline
-  `claude --settings '<json>'` built by `buildSettings`. A prior version scaffolded them into
-  `.claude/` with `init`: every CLI upgrade then silently desynced them from the zod schema, and
-  the mismatch only surfaced after a full (slow, paid) analysis. The only per-repo file is
-  `config-easy-diff.json`. Never write these settings into a repo's `.claude/settings.json` —
-  that would block Write/Edit/Bash in normal interactive Claude Code sessions.
-- **`templates/hooks/guard.cjs` is defense in depth**, not the only barrier — the
-  `--allowedTools`/`--disallowedTools`/`--permission-mode plan` flags in `claude-runner.ts` are
-  the first line. The hook must stay fail-closed (deny by default) on anything it doesn't
-  explicitly recognize.
-- **`templates/hooks/validate-analysis.cjs`** is an additional layer, independent of the
-  `--json-schema` passed to `claude` and of the zod validation in `src/lib/schema.ts`: a `Stop`
-  hook that checks the shape of the produced JSON before the model's turn even ends, and blocks
-  (with details of what's wrong) instead of letting `generate` fail afterward. Vanilla JS with no
-  dependency, like `guard.cjs` — it runs via plain `node`, with the target repo as cwd.
-- **The report language is a config setting (`config-easy-diff.json` at the repo root,
-  gitignored so each developer picks their own), not a `generate` flag.** `easy-diff init
-  [en|fr]` writes it (default `fr`). `generate` reads it and injects it into the prompt, and
-  passes it as an argument to `templates/hooks/validate-language.cjs` — a second `Stop` hook,
-  independent of `validate-analysis.cjs`, which heuristically checks (FR/EN stopword frequency,
-  not exact detection) that the model complied, and blocks with a rewrite request otherwise.
-  Only `src/lib/config.ts` knows where the config lives.
+  `{ status: 'ambiguous', candidates }` instead of guessing silently; `prepare` prints them and
+  the skill asks the user to pick one.
+- **The LLM never produces HTML or a copied diff.** It only writes a structured JSON (overview +
+  steps, validated by `validateAnalysis`). The rendering and the displayed hunks are computed
+  deterministically by our code (direct `git diff`), not by the model — this avoids layout
+  inconsistencies and diff hallucinations. The skill tells the main session never to write or
+  fix the analysis itself.
+- **Plugin hooks fire in every session the plugin is enabled in**, not just during a review.
+  Both hooks therefore act only on the analyst — `guard.cjs` checks `agent_type` (present on
+  every tool event a subagent fires) and stays silent otherwise, `check-analysis.ts` is matched
+  by agent type in `hooks.json` and checks it again. Never let either rule on another agent or
+  the main thread: that would block Write/Edit/Bash in normal sessions.
+- **`plugin/hooks/guard.cjs` is defense in depth**, not the only barrier — the agent's `tools`
+  list is the first line (plugin agents can't set `permissionMode`, so there is no plan mode
+  anymore). For the analyst, the hook must stay fail-closed (deny by default) on anything it
+  doesn't explicitly recognize. "Read-only git" is narrower than the subcommand name: `--output`
+  makes diff/log/show/blame write a file, and redirections or a second line run anything, so
+  both are refused; `git branch` was dropped since it creates and deletes branches. Its `allow` decisions also spare the user a permission prompt
+  for each git command. The one Write it allows is `easy-diff/data/analysis.json` at the repo
+  root: the agent writes the analysis itself rather than returning it, so the JSON never
+  transits through the main session's context.
+- **`check-analysis.ts` checks the file before the agent may stop**: missing, not JSON, wrong
+  shape, or prose in the wrong language — and blocks with what to fix instead of letting
+  `render` fail afterward. One retry only (`stop_hook_active`); `render` validates again and
+  refuses what still doesn't pass. Shape and language used to be two separate `Stop` hooks
+  reading the model's last message; they now share one hook because both read the same file.
+- **The schema the model sees lives in `agents/analyst.md`, the one we enforce in
+  `lib/analysis.ts`.** Keep them in sync by hand; `test/fixtures/analysis.example.json` must
+  pass `validateAnalysis` (tested).
+- **The report language is the plugin's `language` option (`userConfig` in `plugin.json`,
+  `fr`/`en`, default `fr`), per developer.** It replaced `config-easy-diff.json` and `easy-diff
+  init`. An option nobody set (shell `claude plugin install`, `--plugin-dir`) is *not* replaced
+  by its `default`: `${user_config.language}` stays a literal placeholder (seen in a real run).
+  So the skill only ever hands it to `prepare`, single-quoted so bash never expands it;
+  `languageOption` maps the placeholder to `fr`, `prepare` prints the resolved `language:`, and
+  the skill passes that value on to the agent's task and to `render` — never the placeholder.
+  `check-analysis.ts` reads it as `CLAUDE_PLUGIN_OPTION_LANGUAGE` (same `fr` fallback) and
+  heuristically checks (FR/EN stopword frequency, not exact detection) that the model complied.
 - **A single `language` field drives the whole report.** The same value sets the LLM's prose
-  language and the HTML *viewer*'s static labels (buttons, titles — `templates/report/i18n.js`,
-  loaded by `index.html` before `app.js`, embedded as `ReportData.language`). A prior version
-  had a separate `reportLanguage` for the viewer; it was merged because a report mixing two
-  languages was never actually wanted.
-- **Paths and bundling**: no bundler (tsup/esbuild) for now — build via plain `tsc`, which
-  preserves the `src/` → `dist/` tree structure, on which `src/lib/paths.ts` depends (computing
-  `PACKAGE_ROOT` relative to its own location on disk). Introducing a bundler would require
-  revisiting this computation (see the comment in `paths.ts`). The same holds once installed
-  from npm: `package.json` `files` ships `dist/` and the runtime `templates/`, side by side.
+  language and the HTML *viewer*'s static labels (buttons, titles —
+  `plugin/templates/report/i18n.js`, loaded by `index.html` before `app.js`, embedded as
+  `ReportData.language`). A prior version had a separate `reportLanguage` for the viewer; it was
+  merged because a report mixing two languages was never actually wanted.
+- **No build, no dependencies in `plugin/`.** Claude Code copies the plugin directory as is and
+  only installs packages when it finds a lockfile, so the plugin ships TypeScript that Node runs
+  directly (type stripping, Node >= 22.18: `.ts` import extensions, erasable syntax only —
+  `tsconfig.json` enforces both) and depends on nothing (no zod, no commander).
+  `plugin/package.json` only sets `"type": "module"`. `plugin/src/lib/paths.ts` computes
+  `PLUGIN_ROOT` relative to its own location on disk; a build step would mean revisiting it.
+- **Nothing technical is copied into the target repo.** Only `easy-diff/` (the analysis and the
+  report), excluded through `.git/info/exclude` so the user's `.gitignore` is never touched.
 
 ## Commands
 
 ```bash
-npm install
-npm run typecheck   # tsc --noEmit
-npm run build        # tsc + chmod +x dist/cli.js
-npm run dev -- init   # runs from source via tsx, no build needed
-npm pack              # builds (prepack) and produces the tarball `npm publish` would upload
+npm install            # dev tooling only (typescript, tailwind)
+npm run typecheck      # tsc --noEmit
+npm test               # node --test, TypeScript run natively
+npm run build:css      # rebuild plugin/templates/report/style.css after viewer changes
+claude plugin validate plugin && claude plugin validate .
+claude --plugin-dir ./plugin   # from another repo, then /easy-diff:review
 ```
 
 ## Rich analysis format (MR metadata, targeted hunks, confidence, watchpoints)
 
-`templates/analysis.example.json` is now the real format, not just a target: MR metadata, `hunks`
-with exact line numbers, `confidence`, per-step `kind`, per-file `change_type`. The JSON schema,
-the prompt, `src/lib/schema.ts` (zod) and the rendering (`src/render/report.ts`, viewer
-`templates/report/`) are aligned with this shape.
+`test/fixtures/analysis.example.json` is the real format, not just a target: MR metadata,
+`hunks` with exact line numbers, `confidence`, per-step `kind`, per-file `change_type`. The agent
+prompt and its JSON schema (`plugin/agents/analyst.md`), `plugin/src/lib/analysis.ts` and the
+rendering (`plugin/src/render/report.ts`, viewer `plugin/templates/report/`) are aligned with
+this shape.
 
 `watchpoints` live on a hunk, not a file: `hunk.watchpoints: [{ line, note }]`. There is no
 separate generic "focus" concept — a line gets the purple highlight in the viewer if and only if
@@ -224,15 +246,17 @@ Markdown rendering was considered and deliberately rejected; don't reintroduce i
 
 ## Validated against real conditions
 
-`generate` was tested end-to-end with `claude -p --json-schema` against a throwaway repo (see
-`test/fixtures/claude-envelope.*.json`, captured from a real invocation; their
-`structured_output`/`result` payloads were later migrated by hand when the analysis shape changed,
-the envelope itself is untouched). The envelope exposes the structured value under
-`structured_output`. If the format changes in a future Claude Code
-version, `extractAnalysis` includes the raw output in its error message — inspect and adjust
-`collectJsonCandidates` in `src/lib/schema.ts` accordingly.
+`/easy-diff:review` was run end-to-end with `claude -p "/easy-diff:review main" --plugin-dir
+./plugin --output-format stream-json --verbose` on a throwaway repo (2026-10-05), which confirmed:
 
-The package-owned flow (prompt passed to `-p`, hooks registered through inline `--settings`
-JSON) was validated the same way from a global install of the `npm pack` tarball: the analysis
-succeeded, and a probe run confirmed both the guard (denied a Bash command `--allowedTools`
-permitted) and the `Stop` hooks are active.
+- the `!` injection runs `prepare` under the skill's `allowed-tools` rule, and the plugin agent
+  is named `easy-diff:analyst` — the `agent_type` both hooks key on;
+- the guard rules on the analyst only, denied chained commands, `git -C` and `ls`, and allowed
+  the read-only git commands and the single Write to `easy-diff/data/analysis.json`;
+- `check-analysis.ts` fired on `SubagentStop`: it blocked an analysis written in English while
+  French was expected, and the agent rewrote it in French in the same run;
+- an unset `language` option leaves `${user_config.language}` unsubstituted (the first run
+  stalled on it, hence `languageOption`); set through `pluginConfigs["easy-diff@inline"].options`
+  it is substituted in the skill and exported to the hook as `CLAUDE_PLUGIN_OPTION_LANGUAGE`.
+
+A run takes about 30 s and $0.25 on a three-file diff.
