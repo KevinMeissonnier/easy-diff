@@ -17,7 +17,9 @@ your own Claude Code session, on your account and quota.
 Requirements:
 
 - Claude Code
-- Node >= 22.18 (it runs the plugin's TypeScript directly, with no build step)
+- Python >= 3.9, standard library only: the `python3` that macOS's Command Line Tools and
+  current Linux distributions already ship. If it's missing or too old, `/easy-diff:review`
+  says so and how to install it.
 - git
 
 In Claude Code:
@@ -87,9 +89,7 @@ Then delete `easy-diff/` from your repos.
 ```bash
 git clone git@github.com:KevinMeissonnier/easy-diff.git
 cd easy-diff
-npm install            # dev tooling only: the plugin itself has no dependencies
-npm test
-npm run typecheck
+python3 -m unittest discover -s test   # the plugin has no dependencies
 claude plugin validate plugin && claude plugin validate .
 ```
 
@@ -97,7 +97,8 @@ To try your working copy, start Claude Code in any other repo with
 `claude --plugin-dir /path/to/easy-diff/plugin` and run `/easy-diff:review`.
 
 The plugin is `plugin/`, the only directory users receive. The repository root is its
-marketplace (`.claude-plugin/marketplace.json`) and the development tooling.
+marketplace (`.claude-plugin/marketplace.json`) and the development tooling. Node is only
+needed to rebuild the report viewer's CSS after changing it: `npm install && npm run build:css`.
 
 ### Releasing
 

@@ -13,18 +13,12 @@
     "url": "https://github.com/KevinMeissonnier/easy-diff/issues"
   },
   "type": "module",
-  "engines": {
-    "node": ">=22.18"
-  },
   "scripts": {
     "build:css": "tailwindcss -i plugin/templates/report/tailwind.css -o plugin/templates/report/style.css --minify",
-    "typecheck": "tsc --noEmit",
-    "test": "node --test 'test/**/*.test.ts'"
+    "test": "python3 -m unittest discover -s test"
   },
   "devDependencies": {
     "@tailwindcss/cli": "^4.3.3",
-    "@types/node": "^22.7.5",
-    "tailwindcss": "^4.3.3",
-    "typescript": "^5.6.3"
+    "tailwindcss": "^4.3.3"
   }
 }

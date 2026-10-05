@@ -5,6 +5,16 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): while in `0.x`, a minor bump may
 break the CLI or the config file, a patch bump never does.
 
+## [0.3.0] - 2026-10-05
+
+### Changed
+
+- The plugin runs on Python >= 3.9 (standard library only) instead of Node >= 22.18: `python3`
+  is already there on macOS (Command Line Tools) and current Linux distributions, a recent Node
+  often isn't. With no Python, or one older than 3.9, `/easy-diff:review` stops with a message
+  saying what to install; the plugin's hooks then stop only the review agent, never a normal
+  session.
+
 ## [0.2.1] - 2026-10-05
 
 ### Fixed
