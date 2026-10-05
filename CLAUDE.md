@@ -100,15 +100,19 @@ development tooling (`package.json`, `tsconfig.json`, `test/`). The plugin itsel
 the only directory a user's Claude Code copies on install.
 
 - `plugin/skills/review/SKILL.md` — `/easy-diff:review [base]`, run in the user's session. Its
-  `!` injection runs `cli.ts prepare` before the model reads it, then it launches the analyst
-  agent, runs `cli.ts render` and offers `cli.ts open`.
+  `!` injection runs `prepare` before the model reads it, then it launches the analyst agent,
+  runs `render` and offers `open` — all through `plugin/src/easy-diff.cjs`.
 - `plugin/agents/analyst.md` — the `easy-diff:analyst` subagent: the analysis prompt, plus the
   JSON schema the model must follow (there is no `--json-schema` for a subagent). It writes
   `easy-diff/data/analysis.json` and nothing else.
 - `plugin/hooks/hooks.json` — `guard.cjs` on `PreToolUse` and `check-analysis.ts` on
   `SubagentStop`, both scoped to the analyst.
-- `plugin/src/cli.ts` — `prepare [base]`, `render <base> [language]`, `open <file>`; called by
-  the skill only, so no argument parser.
+- `plugin/src/easy-diff.cjs` — the skill's entry point: plain CommonJS so that on a Node too old
+  to run TypeScript it still loads and says so, instead of a raw `ERR_UNKNOWN_FILE_EXTENSION`
+  (seen on a real machine with Node 18). It checks `process.features.typescript`, the exact
+  capability, rather than a version number, then imports `cli.ts`.
+- `plugin/src/cli.ts` — `prepare <language option> [base]`, `render <base> <language>`,
+  `open <file>`; called by the skill only, so no argument parser.
 - `plugin/src/commands/prepare.ts` — detects/checks the base, deletes a stale analysis, keeps
   `easy-diff/` out of git through `.git/info/exclude`, prints `key: value` lines for the skill.
 - `plugin/src/commands/render.ts` — validates the analysis and triggers the HTML render.

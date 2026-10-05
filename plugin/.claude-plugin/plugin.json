@@ -1,6 +1,6 @@
 {
   "name": "easy-diff",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Turn a git diff into a narrated, step-by-step review — as if an agent were presenting its own work, instead of a raw diff you have to reverse-engineer.",
   "author": {
     "name": "Kevin Meissonnier"

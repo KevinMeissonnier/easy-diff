@@ -5,7 +5,15 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html): while in `0.x`, a minor bump may
 break the CLI or the config file, a patch bump never does.
 
-## [Unreleased]
+## [0.2.1] - 2026-10-05
+
+### Fixed
+
+- On a Node.js too old to run TypeScript (< 22.18), `/easy-diff:review` failed with a raw
+  `ERR_UNKNOWN_FILE_EXTENSION` stack trace. It now stops with a message naming the Node version
+  it needs and the one it found.
+
+## [0.2.0] - 2026-10-05
 
 ### Changed
 
