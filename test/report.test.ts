@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { Analysis } from '../src/lib/schema.js';
-import { buildReportData, writeReport } from '../src/render/report.js';
-import { makeTmpRepo, writeFile, commitAll, removeTmpRepo, git } from './helpers/tmp-repo.js';
+import type { Analysis } from '../plugin/src/lib/analysis.ts';
+import { buildReportData, writeReport } from '../plugin/src/render/report.ts';
+import { makeTmpRepo, writeFile, commitAll, removeTmpRepo, git } from './helpers/tmp-repo.ts';
 
 test('render pipeline: diff content comes from git, not from the analysis JSON', async (t) => {
   const repo = makeTmpRepo();
@@ -16,7 +16,7 @@ test('render pipeline: diff content comes from git, not from the analysis JSON',
   writeFile(repo, 'app.py', 'def hello():\n    return "hi"\n\ndef bye():\n    return "bye"\n');
   commitAll(repo, 'add bye()');
 
-  const analysis = Analysis.parse({
+  const analysis: Analysis = {
     version: '1.0',
     merge_request: {
       title: 'Add bye()',
@@ -50,7 +50,7 @@ test('render pipeline: diff content comes from git, not from the analysis JSON',
         ],
       },
     ],
-  });
+  };
 
   const data = buildReportData(analysis, 'main', repo);
   assert.equal(data.language, 'fr', 'defaults to French when not passed');
@@ -85,7 +85,7 @@ test('render pipeline: diff content comes from git, not from the analysis JSON',
   });
 
   await t.test('an out-of-range hunk index degrades to showing every real hunk', () => {
-    const withBadIndex = Analysis.parse({
+    const withBadIndex: Analysis = {
       ...analysis,
       steps: [
         {
@@ -98,17 +98,17 @@ test('render pipeline: diff content comes from git, not from the analysis JSON',
           ],
         },
       ],
-    });
+    };
     const result = buildReportData(withBadIndex, 'main', repo);
     const resultLines = result.steps[0]?.files[0]?.hunks[0]?.lines ?? [];
     assert.ok(resultLines.some((l) => l.text.includes('def bye()')));
   });
 
   await t.test('an unknown/missing file degrades to no hunks, not a crash', () => {
-    const withMissingFile = Analysis.parse({
+    const withMissingFile: Analysis = {
       ...analysis,
       steps: [{ ...analysis.steps[0], files: [{ ...analysis.steps[0]!.files[0]!, path: 'does-not-exist.py' }] }],
-    });
+    };
     const result = buildReportData(withMissingFile, 'main', repo);
     assert.deepEqual(result.steps[0]?.files[0]?.hunks, []);
   });

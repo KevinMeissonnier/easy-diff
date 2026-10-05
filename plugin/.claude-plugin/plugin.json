@@ -1,0 +1,21 @@
+{
+  "name": "easy-diff",
+  "version": "0.2.0",
+  "description": "Turn a git diff into a narrated, step-by-step review — as if an agent were presenting its own work, instead of a raw diff you have to reverse-engineer.",
+  "author": {
+    "name": "Kevin Meissonnier"
+  },
+  "homepage": "https://github.com/KevinMeissonnier/easy-diff#readme",
+  "repository": "https://github.com/KevinMeissonnier/easy-diff",
+  "license": "MIT",
+  "keywords": ["code-review", "review", "git", "diff"],
+  "userConfig": {
+    "language": {
+      "type": "string",
+      "title": "Report language",
+      "description": "Language of the review report: its prose and the viewer's labels.",
+      "options": ["fr", "en"],
+      "default": "fr"
+    }
+  }
+}

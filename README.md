@@ -11,125 +11,103 @@ Turn a git diff into a narrated review, instead of a raw diff to reverse-enginee
 
 ## Installation
 
+easy-diff is a [Claude Code](https://claude.com/claude-code) plugin: the analysis runs inside
+your own Claude Code session, on your account and quota.
+
 Requirements:
 
-- Node >= 18.17
+- Claude Code
+- Node >= 22.18 (it runs the plugin's TypeScript directly, with no build step)
 - git
-- [Claude Code](https://claude.com/claude-code) CLI, on your `PATH` and logged in. `easy-diff`
-  runs the analysis through it, so it uses your own Claude Code account and quota. Nothing
-  checks this at install time: a missing or logged-out `claude` only fails at `generate`.
 
-```bash
-npm install -g @kevinmeissonnier/easy-diff
-easy-diff --version
+In Claude Code:
+
+```text
+/plugin marketplace add KevinMeissonnier/easy-diff
+/plugin install easy-diff@easy-diff
 ```
 
-This installs the `easy-diff` command and everything it needs at runtime (the compiled CLI, the
-analysis prompt, the JSON schema, the Claude Code hooks and the report viewer). Nothing is copied
-into your repos besides an optional config file and the generated report.
+or from a shell: `claude plugin marketplace add KevinMeissonnier/easy-diff`, then
+`claude plugin install easy-diff@easy-diff`.
 
-Other ways to run it:
-
-- Without installing: `npx @kevinmeissonnier/easy-diff@latest generate`.
-- Pinned per repo: `npm install -D @kevinmeissonnier/easy-diff`, then `npx easy-diff generate`.
+Claude Code asks for the report language when the plugin is enabled (`fr` or `en`, default
+`fr`). Change it later in `/config`. It drives the whole report: both the analysis prose and
+the viewer's buttons and headings.
 
 ## Usage
 
 In any git repo, on the branch you want to review:
 
-```bash
-easy-diff init [en|fr]      # once per repo: writes config-easy-diff.json + .gitignore entries
-easy-diff generate          # analyze the current branch against its (auto-detected) base
-easy-diff generate <base>   # ...against a specific base branch
+```text
+/easy-diff:review          # against the (auto-detected) base branch
+/easy-diff:review <base>   # against a specific base branch
 ```
 
-`generate` writes `easy-diff/report/index.html`, a static page with no server, then offers to
-open it in your default browser. In a non-interactive shell (CI, piped output) it only prints the
-path.
+It writes `easy-diff/report/index.html`, a static page with no server, then offers to open it
+in your default browser.
 
-What `generate` does, in order:
+What `/easy-diff:review` does, in order:
 
-1. Reads `config-easy-diff.json` (or defaults to French) and detects the base branch. On a tie
-   between several candidates it asks you to pick one, or fails listing them in a
-   non-interactive shell.
-2. Runs `claude -p` headlessly, read-only (git read commands and file reads only), with the
-   prompt, schema and hooks taken from the installed package.
-3. Validates the analysis and saves it to `easy-diff/data/analysis.json`.
-4. Renders the report. The displayed diffs come from `git diff` directly, never from the model.
+1. Detects the base branch. On a tie between several candidates, it asks you to pick one.
+2. Hands the analysis to the plugin's `easy-diff:analyst` agent: git read commands and file
+   reads only, plus writing `easy-diff/data/analysis.json`. Hooks enforce that, and check the
+   analysis's shape and language before the agent may finish.
+3. Validates the analysis again and renders the report. The displayed diffs come from
+   `git diff` directly, never from the model.
 
-`init` is optional: without a config, everything defaults to French.
-
-### Configuration
-
-`config-easy-diff.json`, at the repo root, is gitignored: each developer picks their own
-language.
-
-```json
-{
-  "language": "fr"
-}
-```
-
-- `language` (`en` or `fr`, default `fr`) — the language of the whole report: both the analysis
-  prose and the viewer's buttons and headings.
+Nothing is added to your repos besides `easy-diff/`, the generated output, which is kept out of
+git through `.git/info/exclude` rather than your `.gitignore`.
 
 ### Upgrading
 
-```bash
-npm install -g @kevinmeissonnier/easy-diff@latest
+```text
+/plugin marketplace update easy-diff
 ```
 
-The prompt, schema, hooks and viewer ship with the package, so an upgrade takes effect on the
-next `generate` with nothing to update in your repos. `config-easy-diff.json` is kept as is.
-Reports already generated keep working: each one is a self-contained copy, overwritten by the
-next `generate`. See [CHANGELOG.md](CHANGELOG.md) for what changed between versions.
+then update the plugin from `/plugin` (or `claude plugin update easy-diff@easy-diff`) and run
+`/reload-plugins`. Reports already generated keep working: each one is a self-contained copy,
+overwritten by the next review. See [CHANGELOG.md](CHANGELOG.md) for what changed between
+versions.
 
-If a repo still has `.claude/commands/easy-diff-report.md` or `.claude/easy-diff/` from an older,
-git-installed version, `generate` lists them: they are no longer used and can be deleted.
+Coming from the npm package (`@kevinmeissonnier/easy-diff`, 0.1.x)? Uninstall it with
+`npm uninstall -g @kevinmeissonnier/easy-diff`, and delete `config-easy-diff.json` and its
+`.gitignore` entry from your repos: the language is now a plugin option.
 
 ### Uninstalling
 
-```bash
-npm uninstall -g @kevinmeissonnier/easy-diff
+```text
+/plugin uninstall easy-diff@easy-diff
+/plugin marketplace remove easy-diff
 ```
 
-Then delete `config-easy-diff.json` and `easy-diff/` from your repos, along with their
-`.gitignore` entries.
+Then delete `easy-diff/` from your repos.
 
 ## Contributing
 
 ```bash
 git clone git@github.com:KevinMeissonnier/easy-diff.git
 cd easy-diff
-npm install
-npm run build
-npm link        # puts your local build on the PATH as `easy-diff`
+npm install            # dev tooling only: the plugin itself has no dependencies
 npm test
+npm run typecheck
+claude plugin validate plugin && claude plugin validate .
 ```
+
+To try your working copy, start Claude Code in any other repo with
+`claude --plugin-dir /path/to/easy-diff/plugin` and run `/easy-diff:review`.
+
+The plugin is `plugin/`, the only directory users receive. The repository root is its
+marketplace (`.claude-plugin/marketplace.json`) and the development tooling.
 
 ### Releasing
 
-Versions follow [semver](https://semver.org). While in `0.x`, a minor bump may break the CLI or
-the config file, a patch bump never does.
+Versions follow [semver](https://semver.org). While in `0.x`, a minor bump may break the
+command or its options, a patch bump never does.
 
-1. In a release branch: `npm version <patch|minor|major> --no-git-tag-version`, move the
-   `Unreleased` entries of `CHANGELOG.md` under the new version, open a PR.
-2. Once merged, tag `main` and push the tag:
-
-   ```bash
-   git tag v0.2.0 && git push origin v0.2.0
-   ```
-
-   `.github/workflows/publish.yml` checks that the tag matches `package.json`, runs the tests,
-   builds and publishes. A prerelease tag (`v0.2.0-beta.0`) is published under the `next`
-   dist-tag instead of `latest`.
-
-A published version number can never be reused, so try the tarball first if in doubt:
-`npm pack`, then `npm install -g ./kevinmeissonnier-easy-diff-<version>.tgz`.
-
-The very first publish is manual (`npm publish`), because npm only lets you configure a trusted
-publisher on a package that already exists. Then, on npmjs.com, add this repository and
-`publish.yml` as the package's trusted publisher.
+In a release branch, bump `version` in `plugin/.claude-plugin/plugin.json`, move the
+`Unreleased` entries of `CHANGELOG.md` under the new version, and open a PR. Users receive the
+release once it is merged into `main`: Claude Code keeps them on the version they installed
+until that field changes.
 
 ## License
 
