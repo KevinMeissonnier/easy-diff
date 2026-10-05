@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 import { prepare } from '../plugin/src/commands/prepare.ts';
 import { render } from '../plugin/src/commands/render.ts';
 import { languageOption } from '../plugin/src/lib/language.ts';
@@ -80,4 +81,15 @@ test('languageOption: an option the user never set arrives as its placeholder an
   assert.equal(languageOption('${user_config.language}'), 'fr');
   assert.equal(languageOption('en'), 'en');
   assert.throws(() => languageOption('de'), /Unsupported language "de"/);
+});
+
+test('easy-diff.cjs: explains an outdated Node instead of failing on the .ts extension', () => {
+  const entry = path.join(here, '..', 'plugin', 'src', 'easy-diff.cjs');
+  const withoutTypeScript = spawnSync('node', ['--no-experimental-strip-types', entry, 'prepare', 'fr'], { encoding: 'utf8' });
+  assert.equal(withoutTypeScript.status, 1);
+  assert.match(withoutTypeScript.stderr, /easy-diff needs Node\.js >= 22\.18/);
+
+  const delegated = spawnSync('node', [entry, 'nonsense'], { encoding: 'utf8' });
+  assert.equal(delegated.status, 1);
+  assert.match(delegated.stderr, /unknown command "nonsense"/, 'otherwise it hands over to cli.ts');
 });
